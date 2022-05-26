@@ -1,1 +1,3 @@
-settings.py
+settings.json
+.idea
+__pycache__
