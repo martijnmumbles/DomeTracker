@@ -2,6 +2,7 @@ import config
 from datetime import datetime, timedelta
 import requests
 import psycopg2
+from discord_webhook import DiscordWebhook
 
 
 class DBManager:
@@ -14,7 +15,7 @@ class DBManager:
         self.user = conf.DB_USERNAME
         self.password = conf.DB_PW
 
-    def query(self, query, values=()):
+    def get_connection(self):
         conn = psycopg2.connect(
             host=self.host,
             port=self.port,
@@ -25,26 +26,23 @@ class DBManager:
         )
         conn.autocommit = True
         cur = conn.cursor()
-        cur.execute(query, values)
-        results = cur.fetchall()
+        return conn, cur
+
+    def close_connection(self, conn, cur):
         cur.close()
         conn.close()
+
+    def query(self, query, values=()):
+        conn, cur = self.get_connection()
+        cur.execute(query, values)
+        results = cur.fetchall()
+        self.close_connection(conn, cur)
         return results
 
     def insert(self, query, values=()):
-        conn = psycopg2.connect(
-            host=self.host,
-            port=self.port,
-            database=self.db,
-            user=self.user,
-            password=self.password,
-            sslmode="require",
-        )
-        conn.autocommit = True
-        cur = conn.cursor()
+        conn, cur = self.get_connection()
         cur.execute(query, values)
-        cur.close()
-        conn.close()
+        self.close_connection(conn, cur)
 
 
 class Dome:
@@ -56,7 +54,7 @@ class Dome:
         self.lp = _lp
 
     def save_to_db(self, db):
-        val = db.insert(
+        db.insert(
             "INSERT INTO dome (tier, rank, lp) VALUES (%s, %s, %s)",
             (self.tier, self.rank, self.lp),
         )
@@ -65,9 +63,6 @@ class Dome:
     def last_dome(db):
         val = db.query("SELECT * FROM dome ORDER BY created_at DESC LIMIT 1;")
         if val:
-            print("--")
-            print(val)
-            print("--")
             return Dome(_tier=val[0][2], _rank=val[0][1], _lp=val[0][0])
         return Dome(None, None, None)
 
@@ -93,8 +88,11 @@ class Poller:
             "https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/Thelmkon",
             headers={"X-Riot-Token": self.conf.X_Riot_Token},
         )
-        if sum_req.status_code == 401:
-            raise Exception("Token Expired")
+        if sum_req.status_code != 200:
+            DiscordWebhook.post_to_discord(
+                self.conf.DISCORD_ERROR_HOOK,
+                f"{sum_req.status_code} error, token expired?",
+            )
         rank_req = requests.get(
             f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/{sum_req.json().get('id')}",
             headers={"X-Riot-Token": self.conf.X_Riot_Token},
