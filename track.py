@@ -93,6 +93,7 @@ class Poller:
                 self.conf.DISCORD_ERROR_HOOK,
                 f"{sum_req.status_code} error, token expired?",
             )
+            raise Exception("Failed API call")
         rank_req = requests.get(
             f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/{sum_req.json().get('id')}",
             headers={"X-Riot-Token": self.conf.X_Riot_Token},
