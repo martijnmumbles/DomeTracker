@@ -5,6 +5,7 @@ import psycopg2
 from discord_webhook import DiscordWebhook
 from summoner import Summoner
 from league import trend
+from graph import graph
 
 
 class DBManager:
@@ -63,6 +64,31 @@ class Poller:
     def poll(self):
         self.get_dome()
 
+    def new_match(self, dome):
+        if dome < Summoner.last_summoner(self.db):
+            res = "lost!"
+        else:
+            res = "won!"
+        DiscordWebhook.post_to_discord(
+            self.conf.DISCORD_REPORT_HOOK,
+            f"Dome just played a match and {res}!",
+        )
+        DiscordWebhook.post_to_discord(
+            self.conf.DISCORD_REPORT_HOOK,
+            f"{trend(dome, Summoner.four_ago_summoner(self.db))}",
+        )
+        dome.save_to_db(self.db)
+        sums = [
+            Summoner(_tier=val[2], _rank=val[1], _lp=val[0])
+            for val in Summoner.last_ten_summoner(self.db)
+        ]
+        graph(sums)
+        DiscordWebhook.post_image_to_discord(
+            self.conf.DISCORD_REPORT_HOOK,
+            f"LP graph over last {len(sums)} games",
+            "graph.png",
+        )
+
     def get_dome(self):
         sum_req = requests.get(
             "https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/Thelmkon",
@@ -85,19 +111,7 @@ class Poller:
                     rank.get("tier"), rank.get("rank"), rank.get("leaguePoints")
                 )
                 if dome != Summoner.last_summoner(self.db):
-                    if dome < Summoner.last_summoner(self.db):
-                        res = "lost!"
-                    else:
-                        res = "won!"
-                    DiscordWebhook.post_to_discord(
-                        self.conf.DISCORD_REPORT_HOOK,
-                        f"Dome just played a match and {res}!",
-                    )
-                    DiscordWebhook.post_to_discord(
-                        self.conf.DISCORD_REPORT_HOOK,
-                        f"{trend(dome, Summoner.four_ago_summoner(self.db))}",
-                    )
-                    dome.save_to_db(self.db)
+                    self.new_match(dome)
 
 
 if __name__ == "__main__":
