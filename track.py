@@ -95,7 +95,7 @@ class Poller:
                     )
                     DiscordWebhook.post_to_discord(
                         self.conf.DISCORD_REPORT_HOOK,
-                        f"{trend(dome, Summoner.five_ago_summoner(self.db))}",
+                        f"{trend(dome, Summoner.four_ago_summoner(self.db))}",
                     )
                     dome.save_to_db(self.db)
 

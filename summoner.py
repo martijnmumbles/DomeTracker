@@ -44,8 +44,8 @@ class Summoner:
         return Summoner(None, None, None)
 
     @staticmethod
-    def five_ago_summoner(db, name="Thelmkon"):
-        val = db.query("SELECT * FROM dome ORDER BY created_at DESC LIMIT 5;")
+    def four_ago_summoner(db, name="Thelmkon"):
+        val = db.query("SELECT * FROM dome ORDER BY created_at DESC LIMIT 4;")
         if val:
-            return Summoner(_tier=val[4][2], _rank=val[4][1], _lp=val[4][0])
+            return Summoner(_tier=val[3][2], _rank=val[3][1], _lp=val[3][0])
         return Summoner(None, None, None)
