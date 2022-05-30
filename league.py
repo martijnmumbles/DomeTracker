@@ -41,8 +41,8 @@ def trend(current, old):
     if delta < 0:
         threshold = (absolute_value(current) // 100) * 100
         buffer = absolute_value(current) - threshold
-        return f"averaging {delta} lp over the last 5 games, projected {buffer // delta*-1} games until demotion :scream:"
+        return f"averaging {delta} lp over the last 5 games, projected {buffer // delta*-1 +1} game(s) until demotion :scream:"
     if delta > 0:
         threshold = (absolute_value(current) // 100 + 1) * 100
         buffer = threshold - absolute_value(current)
-        return f"averaging {delta} lp over the last 5 games, projected {buffer // delta} games until promotion :+1::muscle:"
+        return f"averaging {delta} lp over the last 5 games, projected {buffer // delta +1} game(s) until promotion :+1::muscle:"

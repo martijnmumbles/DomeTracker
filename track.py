@@ -69,7 +69,7 @@ class Poller:
             headers={"X-Riot-Token": self.conf.X_Riot_Token},
         )
         if sum_req.status_code != 200:
-            DiscordWebhook.post_to_discord(
+            DiscordWebhook.post_to_me(
                 self.conf.DISCORD_ERROR_HOOK,
                 f"{sum_req.status_code} error, token expired?",
             )
