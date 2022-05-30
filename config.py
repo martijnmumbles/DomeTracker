@@ -12,6 +12,7 @@ class Config:
     LAST_RUN = ""
     X_Riot_Token = ""
     DISCORD_ERROR_HOOK = ""
+    DISCORD_REPORT_HOOK = ""
 
     def __init__(self):
         with open("settings.json", "r") as conf_file:
@@ -24,6 +25,8 @@ class Config:
             self.DB_PW = data.get("DB_PW")
             self.X_Riot_Token = data.get("X_Riot_Token")
             self.DISCORD_ERROR_HOOK = data.get("DISCORD_ERROR_HOOK")
+            self.DISCORD_REPORT_HOOK = data.get("DISCORD_REPORT_HOOK")
+
             if data.get("LAST_RUN"):
                 self.LAST_RUN = datetime.strptime(
                     data.get("LAST_RUN"), "%Y-%m-%d %H:%M:%S.%f"
@@ -41,5 +44,6 @@ class Config:
                 "LAST_RUN": self.LAST_RUN,
                 "X_Riot_Token": self.X_Riot_Token,
                 "DISCORD_ERROR_HOOK": self.DISCORD_ERROR_HOOK,
+                "DISCORD_REPORT_HOOK": self.DISCORD_REPORT_HOOK,
             }
             json.dump(data, jsonFile, indent=4, sort_keys=True, default=str)

@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import requests
 import psycopg2
 from discord_webhook import DiscordWebhook
+from summoner import Summoner
+from league import trend
 
 
 class DBManager:
@@ -45,28 +47,6 @@ class DBManager:
         self.close_connection(conn, cur)
 
 
-class Dome:
-    tier = rank = lp = ""
-
-    def __init__(self, _tier, _rank, _lp):
-        self.tier = _tier
-        self.rank = _rank
-        self.lp = _lp
-
-    def save_to_db(self, db):
-        db.insert(
-            "INSERT INTO dome (tier, rank, lp) VALUES (%s, %s, %s)",
-            (self.tier, self.rank, self.lp),
-        )
-
-    @staticmethod
-    def last_dome(db):
-        val = db.query("SELECT * FROM dome ORDER BY created_at DESC LIMIT 1;")
-        if val:
-            return Dome(_tier=val[0][2], _rank=val[0][1], _lp=val[0][0])
-        return Dome(None, None, None)
-
-
 class Poller:
     conf = ""
     db = ""
@@ -101,10 +81,22 @@ class Poller:
 
         for rank in rank_req.json():
             if rank.get("queueType") == "RANKED_SOLO_5x5":
-                dome = Dome(
+                dome = Summoner(
                     rank.get("tier"), rank.get("rank"), rank.get("leaguePoints")
                 )
-                if dome.lp != Dome.last_dome(self.db).lp:
+                if dome != Summoner.last_summoner(self.db):
+                    if dome < Summoner.last_summoner(self.db):
+                        res = "lost!"
+                    else:
+                        res = "won!"
+                    DiscordWebhook.post_to_discord(
+                        self.conf.DISCORD_REPORT_HOOK,
+                        f"Dome just played a match and {res}!",
+                    )
+                    DiscordWebhook.post_to_discord(
+                        self.conf.DISCORD_REPORT_HOOK,
+                        f"{trend(dome, Summoner.five_ago_summoner(self.db))}",
+                    )
                     dome.save_to_db(self.db)
 
 
