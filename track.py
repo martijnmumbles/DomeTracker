@@ -62,25 +62,25 @@ class Poller:
         self.conf.update_config()
 
     def poll(self):
-        self.get_dome()
+        self.get_lp()
 
-    def new_match(self, dome):
-        if dome < Summoner.last_summoner(self.db):
+    def new_match(self, record):
+        if record < Summoner.last_record(self.db, record.name):
             res = "lost!"
         else:
             res = "won!"
         DiscordWebhook.post_to_discord(
             self.conf.DISCORD_REPORT_HOOK,
-            f"Dome just played a match and {res}!",
+            f"{record.name} just played a match and {res}!",
         )
         DiscordWebhook.post_to_discord(
             self.conf.DISCORD_REPORT_HOOK,
-            f"{trend(dome, Summoner.four_ago_summoner(self.db))}",
+            f"{trend(record, Summoner.four_ago(self.db, record.name))}",
         )
-        dome.save_to_db(self.db)
+        record.save_to_db(self.db)
         sums = [
-            Summoner(_tier=val[2], _rank=val[1], _lp=val[0])
-            for val in Summoner.last_ten_summoner(self.db)
+            Summoner(_tier=val[2], _rank=val[1], _lp=val[0], _name=record.name)
+            for val in Summoner.last_ten_summoner(self.db, record.name)
         ]
         graph(sums)
         DiscordWebhook.post_image_to_discord(
@@ -89,9 +89,10 @@ class Poller:
             "graph.png",
         )
 
-    def get_dome(self):
+    def get_lp(self):
+        name = "Thelmkon"
         sum_req = requests.get(
-            "https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/Thelmkon",
+            f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}",
             headers={"X-Riot-Token": self.conf.X_Riot_Token},
         )
         if sum_req.status_code != 200:
@@ -107,11 +108,11 @@ class Poller:
 
         for rank in rank_req.json():
             if rank.get("queueType") == "RANKED_SOLO_5x5":
-                dome = Summoner(
-                    rank.get("tier"), rank.get("rank"), rank.get("leaguePoints")
+                record = Summoner(
+                    rank.get("tier"), rank.get("rank"), rank.get("leaguePoints"), name
                 )
-                if dome != Summoner.last_summoner(self.db):
-                    self.new_match(dome)
+                if record != Summoner.last_record(self.db, name):
+                    self.new_match(record)
 
 
 if __name__ == "__main__":
