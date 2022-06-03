@@ -55,7 +55,7 @@ class Summoner:
             "SELECT * FROM lp_record WHERE name = %s ORDER BY created_at DESC LIMIT 4",
             (name,),
         )
-        if val:
+        if len(val) > 3:
             return Summoner(
                 _tier=val[3][2], _rank=val[3][1], _lp=val[3][0], _name=val[3][4]
             )
