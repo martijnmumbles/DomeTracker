@@ -47,7 +47,7 @@ class Summoner:
             return Summoner(
                 _tier=val[0][2], _rank=val[0][1], _lp=val[0][0], _name=val[0][4]
             )
-        return Summoner(None, None, None, None)
+        return None
 
     @staticmethod
     def four_ago(db, name):
@@ -59,7 +59,7 @@ class Summoner:
             return Summoner(
                 _tier=val[3][2], _rank=val[3][1], _lp=val[3][0], _name=val[3][4]
             )
-        return Summoner(None, None, None, None)
+        return None
 
     @staticmethod
     def last_ten_summoner(db, name):

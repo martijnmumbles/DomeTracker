@@ -1,5 +1,14 @@
+# config
 settings.json
+
+# python/ide/mac
 .idea
 __pycache__
+.DS_Store
+
+# virtual env
 Dome
+
+# graphs
 *.png
+

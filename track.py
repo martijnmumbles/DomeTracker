@@ -4,6 +4,7 @@ import requests
 import psycopg2
 from discord_webhook import DiscordWebhook
 from summoner import Summoner
+from match import Match
 from league import trend
 from graph import graph
 
@@ -64,55 +65,73 @@ class Poller:
     def poll(self):
         self.get_lp()
 
-    def new_match(self, record):
-        if record < Summoner.last_record(self.db, record.name):
-            res = "lost!"
+    def new_match(self, record, puuid):
+        last = Summoner.last_record(self.db, record.name)
+        if last and record < last:
+            res = " and lost!"
+        elif last:
+            res = " and won!"
         else:
-            res = "won!"
+            res = ""
         DiscordWebhook.post_to_discord(
             self.conf.DISCORD_REPORT_HOOK,
-            f"{record.name} just played a match and {res}!",
+            f"{record.name} just played a match{res}!",
         )
-        DiscordWebhook.post_to_discord(
-            self.conf.DISCORD_REPORT_HOOK,
-            f"{trend(record, Summoner.four_ago(self.db, record.name))}",
-        )
+        last_four = Summoner.four_ago(self.db, record.name)
+        if last_four:
+            DiscordWebhook.post_to_discord(
+                self.conf.DISCORD_REPORT_HOOK,
+                f"{trend(record, last_four)}",
+            )
         record.save_to_db(self.db)
         sums = [
             Summoner(_tier=val[2], _rank=val[1], _lp=val[0], _name=record.name)
             for val in Summoner.last_ten_summoner(self.db, record.name)
         ]
-        graph(sums)
-        DiscordWebhook.post_image_to_discord(
-            self.conf.DISCORD_REPORT_HOOK,
-            f"LP graph over last {len(sums)} games",
-            "graph.png",
-        )
+        if sums:
+            graph(sums)
+            DiscordWebhook.post_image_to_discord(
+                self.conf.DISCORD_REPORT_HOOK,
+                f"LP graph over last {len(sums)} games",
+                "graph.png",
+            )
+        match_id = Match.get_latest_match_id(puuid, self.conf)
+        event = Match.get_notable_events(record.name, match_id, self.conf)
+        if event:
+            DiscordWebhook.post_to_discord(
+                self.conf.DISCORD_REPORT_HOOK,
+                event,
+            )
 
     def get_lp(self):
-        name = "Thelmkon"
-        sum_req = requests.get(
-            f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}",
-            headers={"X-Riot-Token": self.conf.X_Riot_Token},
-        )
-        if sum_req.status_code != 200:
-            DiscordWebhook.post_to_me(
-                self.conf.DISCORD_ERROR_HOOK,
-                f"{sum_req.status_code} error, token expired?",
+        names = ["Thelmkon", "MartijnMumbles"]
+        for name in names:
+            sum_req = requests.get(
+                f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}",
+                headers={"X-Riot-Token": self.conf.X_Riot_Token},
             )
-            raise Exception("Failed API call")
-        rank_req = requests.get(
-            f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/{sum_req.json().get('id')}",
-            headers={"X-Riot-Token": self.conf.X_Riot_Token},
-        )
-
-        for rank in rank_req.json():
-            if rank.get("queueType") == "RANKED_SOLO_5x5":
-                record = Summoner(
-                    rank.get("tier"), rank.get("rank"), rank.get("leaguePoints"), name
+            if sum_req.status_code != 200:
+                DiscordWebhook.post_to_me(
+                    self.conf.DISCORD_ERROR_HOOK,
+                    f"{sum_req.status_code} error, token expired?",
                 )
-                if record != Summoner.last_record(self.db, name):
-                    self.new_match(record)
+                raise Exception("Failed API call")
+            rank_req = requests.get(
+                f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/{sum_req.json().get('id')}",
+                headers={"X-Riot-Token": self.conf.X_Riot_Token},
+            )
+
+            for rank in rank_req.json():
+                if rank.get("queueType") == "RANKED_SOLO_5x5":
+                    record = Summoner(
+                        rank.get("tier"),
+                        rank.get("rank"),
+                        rank.get("leaguePoints"),
+                        name,
+                    )
+                    last = Summoner.last_record(self.db, name)
+                    if not last or record != last:
+                        self.new_match(record, sum_req.json().get("puuid"))
 
 
 if __name__ == "__main__":
