@@ -68,33 +68,35 @@ class Poller:
     def new_match(self, record, puuid):
         last = Summoner.last_record(self.db, record.name)
         if last and record < last:
-            res = " and lost!"
-        elif last:
-            res = " and won!"
+            res = f" and lost.. Demoted to {record.tier} {record.rank}"
         else:
-            res = ""
-        DiscordWebhook.post_to_discord(
-            self.conf.DISCORD_REPORT_HOOK,
-            f"{record.name} just played a match{res}!",
-        )
-        last_four = Summoner.four_ago(self.db, record.name)
-        if last_four:
+            res = f" and won! Promoted to {record.tier} {record.rank}! Rising up!"
+
+        record.save_to_db(self.db)
+        if last and (record.rank != last.rank or record.tier != last.tier):
             DiscordWebhook.post_to_discord(
                 self.conf.DISCORD_REPORT_HOOK,
-                f"{trend(record, last_four)}",
+                f"{record.name} just played a match{res}",
             )
-        record.save_to_db(self.db)
-        sums = [
-            Summoner(_tier=val[2], _rank=val[1], _lp=val[0], _name=record.name)
-            for val in Summoner.last_ten_summoner(self.db, record.name)
-        ]
-        if sums:
-            graph(sums)
-            DiscordWebhook.post_image_to_discord(
-                self.conf.DISCORD_REPORT_HOOK,
-                f"LP graph over last {len(sums)} games",
-                "graph.png",
-            )
+            last_five = Summoner.five_ago(self.db, record.name)
+            if last_five:
+                DiscordWebhook.post_to_discord(
+                    self.conf.DISCORD_REPORT_HOOK,
+                    f"{trend(record, last_five)}",
+                )
+
+            sums = [
+                Summoner(_tier=val[2], _rank=val[1], _lp=val[0], _name=record.name)
+                for val in Summoner.last_ten_summoner(self.db, record.name)
+            ]
+            if sums:
+                graph(sums)
+                DiscordWebhook.post_image_to_discord(
+                    self.conf.DISCORD_REPORT_HOOK,
+                    f"LP graph over last {len(sums)} games",
+                    "graph.png",
+                )
+
         match_id = Match.get_latest_match_id(puuid, self.conf)
         event = Match.get_notable_events(record.name, match_id, self.conf)
         if event:

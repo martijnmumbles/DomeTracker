@@ -50,14 +50,14 @@ class Summoner:
         return None
 
     @staticmethod
-    def four_ago(db, name):
+    def five_ago(db, name):
         val = db.query(
-            "SELECT * FROM lp_record WHERE name = %s ORDER BY created_at DESC LIMIT 4",
+            "SELECT * FROM lp_record WHERE name = %s ORDER BY created_at DESC LIMIT 5",
             (name,),
         )
-        if len(val) > 3:
+        if len(val) > 4:
             return Summoner(
-                _tier=val[3][2], _rank=val[3][1], _lp=val[3][0], _name=val[3][4]
+                _tier=val[4][2], _rank=val[4][1], _lp=val[4][0], _name=val[4][4]
             )
         return None
 
