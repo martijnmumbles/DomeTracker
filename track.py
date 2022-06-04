@@ -72,7 +72,8 @@ class Poller:
         else:
             res = f" and won! Promoted to {record.tier} {record.rank}! Rising up!"
 
-        record.save_to_db(self.db)
+        if not last or last != record:
+            record.save_to_db(self.db)
         if last and (record.rank != last.rank or record.tier != last.tier):
             DiscordWebhook.post_to_discord(
                 self.conf.DISCORD_REPORT_HOOK,
