@@ -18,6 +18,9 @@ class Summoner:
             (self.tier, self.rank, self.lp, self.name),
         )
 
+    def __str__(self):
+        return f"{self.name}, {self.tier}, {self.rank}, {self.lp}"
+
     def __eq__(self, other):
         return (
             isinstance(other, Summoner)
@@ -31,8 +34,12 @@ class Summoner:
             raise Exception("Not a Summoner object")
         if tier_to_int(self) < tier_to_int(other):
             return True
+        elif tier_to_int(self) > tier_to_int(other):
+            return False
         if rank_to_int(self) < rank_to_int(other):
             return True
+        elif rank_to_int(self) > rank_to_int(other):
+            return False
         if self.lp < other.lp:
             return True
         return False
@@ -45,7 +52,7 @@ class Summoner:
         )
         if val:
             return Summoner(
-                _tier=val[0][2], _rank=val[0][1], _lp=val[0][0], _name=val[0][4]
+                _tier=val[0][2], _rank=val[0][1], _lp=val[0][0], _name=val[0][5]
             )
         return None
 
@@ -57,7 +64,7 @@ class Summoner:
         )
         if len(val) > 4:
             return Summoner(
-                _tier=val[4][2], _rank=val[4][1], _lp=val[4][0], _name=val[4][4]
+                _tier=val[4][2], _rank=val[4][1], _lp=val[4][0], _name=val[4][5]
             )
         return None
 
