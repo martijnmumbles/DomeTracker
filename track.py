@@ -68,9 +68,13 @@ class Poller:
     def new_match(self, record, puuid):
         last = Summoner.last_record(self.db, record.name)
         if last and record < last:
-            res = f" and lost.. Demoted to {record.tier} {record.rank}"
+            res = f" and lost.."
+            if last.rank != record.rank:
+                res += f"Demoted to {record.tier} {record.rank}"
         elif last and record > last:
-            res = f" and won! Promoted to {record.tier} {record.rank}! Rising up!"
+            res = f" and won!"
+            if last.rank != record.rank:
+                res += f"Promoted to {record.tier} {record.rank}! Rising up!"
         else:
             res = f"."
         if not last or last != record:
