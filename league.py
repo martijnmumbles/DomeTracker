@@ -31,7 +31,7 @@ def rank_to_int(summoner):
 
 
 def absolute_value(summoner):
-    return tier_to_int(summoner) * 1000 + rank_to_int(summoner) * 100 + summoner.lp
+    return tier_to_int(summoner) * 400 + rank_to_int(summoner) * 100 + summoner.lp
 
 
 def trend(current, old):
