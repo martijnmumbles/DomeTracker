@@ -65,32 +65,7 @@ class Poller:
     def poll(self):
         self.get_lp()
 
-    def new_match(self, record, puuid):
-        last = Summoner.last_record(self.db, record.name)
-        if last and record < last:
-            res = f" and lost.."
-            if last.rank != record.rank:
-                res += f"Demoted to {record.tier} {record.rank}"
-        elif last and record > last:
-            res = f" and won!"
-            if last.rank != record.rank:
-                res += f"Promoted to {record.tier} {record.rank}! Rising up!"
-        else:
-            res = f"."
-        if not last or last != record:
-            record.save_to_db(self.db)
-        # if last and (record.rank != last.rank or record.tier != last.tier):
-        DiscordWebhook.post_to_discord(
-            self.conf.DISCORD_REPORT_HOOK,
-            f"{record.name} just played a match{res}",
-        )
-        last_five = Summoner.five_ago(self.db, record.name)
-        if last_five:
-            DiscordWebhook.post_to_discord(
-                self.conf.DISCORD_REPORT_HOOK,
-                f"{trend(record, last_five)}",
-            )
-
+    def lp_graph(self, record):
         sums = [
             Summoner(_tier=val[2], _rank=val[1], _lp=val[0], _name=record.name)
             for val in Summoner.last_ten_summoner(self.db, record.name)
@@ -103,6 +78,7 @@ class Poller:
                 "graph.png",
             )
 
+    def events(self, record, puuid):
         match_id = Match.get_latest_match_id(puuid, self.conf)
         event = Match.get_notable_events(record.name, match_id, self.conf)
         if event:
@@ -110,6 +86,51 @@ class Poller:
                 self.conf.DISCORD_REPORT_HOOK,
                 event,
             )
+
+    def print_regular_match(self, record, last):
+        if last and record < last:
+            res = f" and lost.."
+            if last.rank != record.rank:
+                res += f"Demoted to {record.tier} {record.rank}"
+        elif last and record > last:
+            res = f" and won!"
+            if record.promo:
+                res += f" PROMO TIME!! {record.str_promo()}"
+            elif last.rank != record.rank or last.tier != record.tier:
+                res += f" Promoted to {record.tier} {record.rank}! Rising up!"
+        else:
+            res = f"."
+
+        # if last and (record.rank != last.rank or record.tier != last.tier):
+        DiscordWebhook.post_to_discord(
+            self.conf.DISCORD_REPORT_HOOK,
+            f"{record.name} just played a match{res}",
+        )
+        last_five = Summoner.five_ago(self.db, record.name)
+        if not record.promo and last_five:
+            DiscordWebhook.post_to_discord(
+                self.conf.DISCORD_REPORT_HOOK,
+                f"{trend(record, last_five)}",
+            )
+
+        self.lp_graph(record)
+
+    def compare_promos(self, record):
+        DiscordWebhook.post_to_discord(
+            self.conf.DISCORD_REPORT_HOOK,
+            f"{record.name} just played a promo game and... {record.last_promo()} {record.str_promo()}"
+            f"{record.promos_left()} matches left.",
+        )
+
+    def new_match(self, record, last, puuid):
+        record.save_to_db(self.db)
+        if record.name != "Thelmkon":
+            return
+        if record.promo and last and last.promo:
+            self.compare_promos(record)
+        else:
+            self.print_regular_match(record, last)
+        self.events(record, puuid)
 
     def get_lp(self):
         names = ["Thelmkon", "MartijnMumbles", "Greenmasterflash"]
@@ -131,15 +152,20 @@ class Poller:
 
             for rank in rank_req.json():
                 if rank.get("queueType") == "RANKED_SOLO_5x5":
+                    promo = ""
+                    if rank.get("miniSeries"):
+                        promo = rank.get("miniSeries").get("progress")
                     record = Summoner(
                         rank.get("tier"),
                         rank.get("rank"),
                         rank.get("leaguePoints"),
                         name,
+                        promo,
                     )
+
                     last = Summoner.last_record(self.db, name)
                     if not last or record != last:
-                        self.new_match(record, sum_req.json().get("puuid"))
+                        self.new_match(record, last, sum_req.json().get("puuid"))
 
 
 if __name__ == "__main__":

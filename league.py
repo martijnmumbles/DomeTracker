@@ -35,7 +35,7 @@ def absolute_value(summoner):
 
 
 def trend(current, old):
-    delta = (absolute_value(current) - absolute_value(old)) // 5
+    delta = round((absolute_value(current) - absolute_value(old)) / 5)
     trending = f"Averaging {'+' if delta > 0 else ''}{delta} lp over the last 5 games,"
     if delta < 0:
         threshold = (absolute_value(current) // 100) * 100
