@@ -142,7 +142,7 @@ class Poller:
             if sum_req.status_code != 200:
                 DiscordWebhook.post_to_me(
                     self.conf.DISCORD_ERROR_HOOK,
-                    f"{sum_req.status_code} error, token expired?",
+                    f"{sum_req.status_code} error, token expired? {sum_req.url}",
                 )
                 raise Exception("Failed API call")
             rank_req = requests.get(
