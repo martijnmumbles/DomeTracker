@@ -1,5 +1,6 @@
 # config
 settings.json
+.env
 
 # python/ide/mac
 .idea
