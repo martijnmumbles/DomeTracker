@@ -13,3 +13,5 @@ Dome
 # graphs
 *.png
 
+# match records
+/matches/*
