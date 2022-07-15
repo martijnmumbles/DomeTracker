@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from django.db.models.signals import post_save
 from apps.change.models import Change
 from model_utils import FieldTracker
+from discord_webhook import DiscordWebhook
 
 
 class Summoner(models.Model):
@@ -37,6 +38,68 @@ class Summoner(models.Model):
         )
         plt.savefig("graph.png")
 
+    def report_new(self):
+        if not self.report_hook:
+            return
+        if self.match_set.count() == 1:
+            record = self.match_set.first().rankedrecord
+            DiscordWebhook.post_to_discord(
+                self.report_hook, f"{self.name} added. Currently {record}."
+            )
+        else:
+            matches = self.match_set.order_by("-start_time")[:10]
+            match_result = "won" if matches[0].win else "lost"
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                f"{self.name} just {match_result} as {matches[0].champion_name}!",
+            )
+            if matches[0].rankedrecord.promo:
+                if not matches[1].rankedrecord.promo:
+                    DiscordWebhook.post_to_discord(
+                        self.report_hook,
+                        f"Starting promos! {matches[0].rankedrecord.promo.target-matches[0].rankedrecord.promo.wins}"
+                        " wins needed! May your inner-Faker channel through.",
+                    )
+                else:
+                    if matches[0].win:
+                        DiscordWebhook.post_to_discord(
+                            self.report_hook,
+                            f"One step closer to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier+1)}! Keep it "
+                            f"up!",
+                        )
+                    else:
+                        DiscordWebhook.post_to_discord(
+                            self.report_hook,
+                            f"Time to rally. Step up to the fight, bring them down! Clutch out those "
+                            f"{matches[0].rankedrecord.promo.target-matches[0].rankedrecord.promo.wins} win(s)!",
+                        )
+            elif matches[1].rankedrecord.promo:
+                if not matches[0].win:
+                    DiscordWebhook.post_to_discord(
+                        self.report_hook,
+                        'Promos ended.. "Mission Failed. We\'ll Get Em Next Time."',
+                    )
+                else:
+                    DiscordWebhook.post_to_discord(
+                        self.report_hook,
+                        f"Promos ended, congratulations! Sally forth brave Summoner, may "
+                        f"{RankedRecord.int_to_tier(matches[1].rankedrecord.tier)} be kind.",
+                    )
+            else:
+                trend = ""
+                if len(matches) > 4:
+                    trend = RankedRecord.trend(
+                        matches[0].rankedrecord, matches[1].rankedrecord
+                    )
+                match_result = "Gained" if matches[0].win else "Lost"
+                DiscordWebhook.post_to_discord(
+                    self.report_hook,
+                    f"{match_result} "
+                    f"{abs(matches[0].rankedrecord.absolute_value()-matches[1].rankedrecord.absolute_value())} LP."
+                    f" {trend}",
+                )
+            matches[0].events()
+
     def poll(self):
         self.update_summoner_data()
         matches_req = requests.get(
@@ -46,13 +109,16 @@ class Summoner(models.Model):
 
         if matches_req.status_code == 200:
             for match_id in matches_req.json():
-                if match_id == self.match_set.last():
+                if match_id == self.match_set.last().match_id:
                     break
                 else:
                     # new match found
                     match = Match.create_match(match_id, self)
                     rank = self.get_current_rank()
                     RankedRecord.create_record(self, match, rank)
+                    if self.report_hook:
+                        self.report_new()
+
         else:
             raise Exception(f"Failed to get matches on poll call for {self.name}")
 
@@ -87,7 +153,7 @@ class Summoner(models.Model):
             )
 
     @staticmethod
-    def create_summoner(name):
+    def create_summoner(name, report_hook=None):
         sum_req = requests.get(
             f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}",
             headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
@@ -99,13 +165,17 @@ class Summoner(models.Model):
                 summoner_id=reply_sum.get("id"),
                 account_id=reply_sum.get("accountId"),
                 puu_id=reply_sum.get("puuid"),
+                report_hook=report_hook,
             )
             new_sum.save()
 
-            last_match = Match.find_last_ranked(new_sum)
+            match_id = Match.find_last_ranked(new_sum)
+            last_match = Match.create_match(match_id, new_sum)
             rank = new_sum.get_current_rank()
             RankedRecord.create_record(new_sum, last_match, rank)
-
+            if report_hook:
+                new_sum.report_new()
+            return new_sum
         else:
             raise Exception(
                 f"Failed to get summoner information on create_summoner call for {name}"

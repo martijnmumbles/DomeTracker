@@ -3,6 +3,8 @@ from django.conf import settings
 from django.db import models
 import os
 import json
+from datetime import datetime, timezone
+from discord_webhook import DiscordWebhook
 
 
 # Create your models here.
@@ -18,9 +20,44 @@ class Match(models.Model):
     deaths = models.IntegerField(default=0)
     assists = models.IntegerField(default=0)
     kda = models.FloatField(default=0)
+    start_time = models.DateTimeField()
+    duration = models.IntegerField(default=0)
+    win = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["start_time"]
 
     def __str__(self):
         return f"Match {self.match_id} for {self.summoner.name}"
+
+    def events(self):
+        if self.penta_kills > 0:
+            DiscordWebhook.post_to_discord(
+                self.summoner.report_hook,
+                f"penta? penta? Penta? PENTA?! PENTAKILL BAAAYBBEEE! {self.summoner.name.upper()} does not believe "
+                f'"sharing is caring" on {self.champion_name}',
+            )
+        elif self.quadra_kills > 0:
+            DiscordWebhook.post_to_discord(
+                self.summoner.report_hook,
+                f"EPIC! {self.summoner.name.upper()} SECURED A QUADRA KILL ON {self.champion_name.upper()}",
+            )
+        elif self.triple_kills > 0:
+            DiscordWebhook.post_to_discord(
+                self.summoner.report_hook,
+                f"{self.summoner.name} with the Trip-Trip-Triple kill on {self.champion_name}! Let's go!",
+            )
+        if self.epic_steals > 0:
+            DiscordWebhook.post_to_discord(
+                self.summoner.report_hook,
+                f"{self.summoner.name} coming in like a thief in the night. \"What's mine is mine, and what's yours is "
+                f'also mine". Assisted in an epic monster steal!',
+            )
+        if self.duration > 3000:
+            DiscordWebhook.post_to_discord(
+                self.summoner.report_hook,
+                f"A {3000 // 60} minute game? Oof, you worked for that one!",
+            )
 
     @staticmethod
     def create_match(match_id, summoner):
@@ -49,6 +86,13 @@ class Match(models.Model):
                         deaths=participant.get("deaths"),
                         assists=participant.get("assists"),
                         kda=participant.get("challenges").get("kda"),
+                        start_time=datetime.fromtimestamp(
+                            match_req.json().get("info").get("gameStartTimestamp")
+                            / 1e3,
+                            timezone.utc,
+                        ),
+                        duration=match_req.json().get("info").get("gameDuration"),
+                        win=participant.get("win"),
                     )
                     match.save()
                     Match.write(match_id, match_data)
@@ -57,12 +101,12 @@ class Match(models.Model):
     @staticmethod
     def find_last_ranked(summoner):
         match_req = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{summoner.puu_id}/ids?start=0&count=1&queue=420",
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{summoner.puu_id}/ids?start=0&count=2&queue=420",
             headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
         )
         if match_req.status_code == 200 and match_req.json():
             for match in match_req.json():
-                return Match.create_match(match, summoner)
+                return match
         else:
             raise Exception(f"Can't find any rank records fur {summoner.puu_id}")
 
@@ -95,8 +139,24 @@ class Promos(models.Model):
             and self.target == other.target
             and self.wins == other.wins
             and self.losses == other.losses
-            and self.progress == other.prgress
+            and self.progress == other.progress
         )
+
+    def __lt__(self, other):
+        if not isinstance(other, Promos):
+            raise Exception("Not a Promos object")
+        if self.wins > other.wins:
+            return False
+        elif self.wins < other.wins:
+            return True
+        if self.losses > other.losses:
+            return True
+        elif self.losses < other.losses:
+            return False
+        return False
+
+    def __str__(self):
+        return f"{self.wins} wins out of {self.target} needed. {5-self.losses-self.wins} matches left."
 
 
 class RankedRecord(models.Model):
@@ -119,6 +179,56 @@ class RankedRecord(models.Model):
             and self.lp == other.lp
             and self.promo == other.promo
         )
+
+    def __lt__(self, other):
+        if not isinstance(other, RankedRecord):
+            raise Exception("Not a RankedRecord object")
+        if self.promo and other.promo:
+            if self.promo < other.promo:
+                return True
+            elif self.promo > other.promo:
+                return False
+        if self.tier < other.tier:
+            return True
+        elif self.tier > other.tier:
+            return False
+        if self.rank < other.rank:
+            return True
+        elif self.rank > self.rank:
+            return False
+        if self.lp < other.lp:
+            return True
+        return False
+
+    def __str__(self):
+        result = f"{RankedRecord.int_to_tier(self.tier)} {RankedRecord.int_to_rank(self.rank)} {self.lp} LP."
+        if self.promo:
+            result += f" {self.promo}"
+        return result
+
+    @staticmethod
+    def trend(current, old):
+        delta = round((current.absolute_value() - old.absolute_value()) / 5)
+        trending = (
+            f"Netting {'+' if delta > 0 else ''}{delta} lp over the last 5 games,"
+        )
+        if delta < 0:
+            threshold = (current.absolute_value() // 100) * 100
+            buffer = current.absolute_value() - threshold
+            if buffer // delta * -1 + 1 < 5:
+                return (
+                    trending
+                    + f" projected {buffer // delta * -1 + 1} game(s) until demotion :scream:"
+                )
+        if delta > 0:
+            threshold = (current.absolute_value() // 100 + 1) * 100
+            buffer = threshold - current.absolute_value()
+            if buffer // delta + 1 < 5:
+                return (
+                    trending
+                    + f" projected {buffer // delta + 1} game(s) until promotion :+1::muscle:"
+                )
+        return trending
 
     @staticmethod
     def create_record(summoner, match, ranked):
