@@ -210,7 +210,7 @@ class RankedRecord(models.Model):
     def trend(current, old):
         delta = round((current.absolute_value() - old.absolute_value()) / 5)
         trending = (
-            f"Netting {'+' if delta > 0 else ''}{delta} lp over the last 5 games,"
+            f"Netting {'+' if delta > 0 else ''}{delta} lp over the last 5 games."
         )
         if delta < 0:
             threshold = (current.absolute_value() // 100) * 100
@@ -218,7 +218,7 @@ class RankedRecord(models.Model):
             if buffer // delta * -1 + 1 < 5:
                 return (
                     trending
-                    + f" projected {buffer // delta * -1 + 1} game(s) until demotion :scream:"
+                    + f" Projected {buffer // delta * -1 + 1} game(s) until demotion :scream:"
                 )
         if delta > 0:
             threshold = (current.absolute_value() // 100 + 1) * 100
@@ -226,7 +226,7 @@ class RankedRecord(models.Model):
             if buffer // delta + 1 < 5:
                 return (
                     trending
-                    + f" projected {buffer // delta + 1} game(s) until promotion :+1::muscle:"
+                    + f" Projected {buffer // delta + 1} game(s) until promotion :+1::muscle:"
                 )
         return trending
 
