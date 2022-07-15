@@ -31,12 +31,21 @@ class Summoner(models.Model):
 
     def graph(self, length=10):
         records = self.match_set.all()[::-1][:length]
-        base_val = records[0].absolute_value() // 100 * 100
+        base_val = records[0].rankedrecord.absolute_value() // 100 * 100
         plt.plot(
             range(1, len(records) + 1),
-            [x.absolute_value() - base_val for x in list(reversed(records))],
+            [
+                x.rankedrecord.absolute_value() - base_val
+                for x in list(reversed(records))
+            ],
         )
         plt.savefig("graph.png")
+        if self.report_hook:
+            DiscordWebhook.post_image_to_discord(
+                self.report_hook,
+                f"LP graph over last {len(records)} games",
+                "graph.png",
+            )
 
     def report_new(self):
         if not self.report_hook:
@@ -98,6 +107,7 @@ class Summoner(models.Model):
                     f"{abs(matches[0].rankedrecord.absolute_value()-matches[1].rankedrecord.absolute_value())} LP."
                     f" {trend}",
                 )
+            self.graph(10)
             matches[0].events()
 
     def poll(self):
