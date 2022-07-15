@@ -145,7 +145,7 @@ class Summoner(models.Model):
             self.save()
         else:
             raise Exception(
-                "Failed to get summoner information on update_summoner call"
+                f"Failed to get summoner information on update_summoner call, {sum_req.json()}"
             )
 
     def get_current_rank(self):
