@@ -133,7 +133,7 @@ class Poller:
         self.events(record, puuid)
 
     def get_lp(self):
-        names = ["Thelmkon", "MartijnMumbles", "meds take didnt"]
+        names = ["Thelmkon", "MartijnMumbles", "Greenmasterflash", "Tiny Firequacker"]
         for name in names:
             sum_req = requests.get(
                 f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}",
