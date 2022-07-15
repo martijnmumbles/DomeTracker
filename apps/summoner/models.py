@@ -12,8 +12,8 @@ from discord_webhook import DiscordWebhook
 class Summoner(models.Model):
     name = models.CharField(max_length=16, null=False)
     report_hook = models.CharField(max_length=120, null=True)
-    summoner_id = models.CharField(max_length=47)
-    account_id = models.CharField(max_length=46)
+    summoner_id = models.CharField(max_length=63)
+    account_id = models.CharField(max_length=56)
     puu_id = models.CharField(max_length=78, unique=True)
     tracker = FieldTracker()
 

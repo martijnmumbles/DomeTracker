@@ -101,7 +101,7 @@ class Match(models.Model):
     @staticmethod
     def find_last_ranked(summoner):
         match_req = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{summoner.puu_id}/ids?start=0&count=2&queue=420",
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{summoner.puu_id}/ids?start=0&count=1&queue=420",
             headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
         )
         if match_req.status_code == 200 and match_req.json():
