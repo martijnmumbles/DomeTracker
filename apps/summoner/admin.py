@@ -1,5 +1,4 @@
 from django.contrib import admin
-from .models import Promos, Summoner
+from .models import Summoner
 
 admin.site.register(Summoner)
-admin.site.register(Promos)
