@@ -75,7 +75,7 @@ class Match(models.Model):
     def update_new_attribute(self, field, name, challenges=False):
         loaded = Match.read(self.match_id)
         for player in loaded.get("info").get("participants"):
-            if player.get("summonerName") == self.summoner.name:
+            if player.get("puuid") == self.summoner.puu_id:
                 if challenges:
                     value = player.get("challenges").get(name)
                 else:
