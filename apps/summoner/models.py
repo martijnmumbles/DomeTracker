@@ -15,6 +15,7 @@ class Summoner(models.Model):
     summoner_id = models.CharField(max_length=63)
     account_id = models.CharField(max_length=56)
     puu_id = models.CharField(max_length=78, unique=True)
+    bully_opt_in = models.BooleanField(default=False)
     tracker = FieldTracker()
 
     def __str__(self):

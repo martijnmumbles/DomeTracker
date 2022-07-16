@@ -23,6 +23,14 @@ class Match(models.Model):
     start_time = models.DateTimeField()
     duration = models.IntegerField(default=0)
     win = models.BooleanField(default=False)
+    vision_wards_bought = models.IntegerField(default=0)
+    wards_placed = models.IntegerField(default=0)
+    vision_score = models.IntegerField(default=0)
+    longest_time_spent_living = models.IntegerField(default=0)
+    first_blood_kill = models.BooleanField(default=False)
+    first_blood_assist = models.BooleanField(default=False)
+    first_tower_kill = models.BooleanField(default=False)
+    first_tower_assist = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["start_time"]
@@ -60,6 +68,34 @@ class Match(models.Model):
             )
 
     @staticmethod
+    def update_all_new_attributes(field, name, challenges=False):
+        for match in Match.objects.all():
+            match.update_new_attribute(field, name, challenges)
+
+    def update_new_attribute(self, field, name, challenges=False):
+        loaded = Match.read(self.match_id)
+        for player in loaded.get("info").get("participants"):
+            if player.get("summonerName") == self.summoner.name:
+                if challenges:
+                    value = player.get("challenges").get(name)
+                else:
+                    value = player.get(name)
+                setattr(self, field, value)
+                self.save()
+
+    def restore_puuid(self):
+        match_req = requests.get(
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/{self.match_id}",
+            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        )
+        if (
+            match_req.status_code == 200
+            and match_req.json().get("info").get("queueId") == 420
+        ):
+            match_data = match_req.json()
+            Match.write(self.match_id, match_data)
+
+    @staticmethod
     def create_match(match_id, summoner):
         match_req = requests.get(
             f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}",
@@ -93,6 +129,16 @@ class Match(models.Model):
                         ),
                         duration=match_req.json().get("info").get("gameDuration"),
                         win=participant.get("win"),
+                        vision_wards_bought=participant.get("visionWardsBoughtInGame"),
+                        wards_placed=participant.get("wardsPlaced"),
+                        vision_score=participant.get("visionScore"),
+                        longest_time_spent_living=participant.get(
+                            "longestTimeSpentLiving"
+                        ),
+                        first_blood_kill=participant.get("firstBloodKill"),
+                        first_blood_assist=participant.get("firstBloodAssist"),
+                        first_tower_kill=participant.get("firstTowerKill"),
+                        first_tower_assist=participant.get("firstTowerAssist"),
                     )
                     match.save()
                     Match.write(match_id, match_data)
