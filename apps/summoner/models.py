@@ -109,6 +109,19 @@ class Summoner(models.Model):
                     f"{abs(matches[0].rankedrecord.absolute_value()-matches[1].rankedrecord.absolute_value())} LP."
                     f" {trend}",
                 )
+                if matches[0].rankedrecord.rank > matches[1].rankedrecord.rank:
+                    DiscordWebhook.post_to_discord(
+                        self.report_hook,
+                        f"Rising up to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
+                        f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}!",
+                    )
+                elif matches[1].rankedrecord.rank > matches[0].rankedrecord.rank:
+                    DiscordWebhook.post_to_discord(
+                        self.report_hook,
+                        f"Dropped down to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
+                        f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}.. Time to rally. Step up to the "
+                        f"fight, bring them down!",
+                    )
             self.graph(10)
             matches[0].events()
 
