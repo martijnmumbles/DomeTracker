@@ -40,12 +40,13 @@ class Summoner(models.Model):
                 for x in list(reversed(records))
             ],
         )
-        plt.savefig("graph.png")
+        file_name = f"graph_{records[0].summoner.name}.png"
+        plt.savefig(file_name)
         if self.report_hook:
             DiscordWebhook.post_image_to_discord(
                 self.report_hook,
                 f"LP graph over last {len(records)} games",
-                "graph.png",
+                file_name,
             )
 
     def report_new(self):
