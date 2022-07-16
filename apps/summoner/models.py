@@ -31,7 +31,7 @@ class Summoner(models.Model):
         }
 
     def graph(self, length=10):
-        records = self.match_set.all()[::-1][:length]
+        records = self.match_set.order_by("start_time")[::-1][:length]
         base_val = records[0].rankedrecord.absolute_value() // 100 * 100
         plt.plot(
             range(1, len(records) + 1),
