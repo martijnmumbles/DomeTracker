@@ -31,7 +31,7 @@ class Summoner(models.Model):
         }
 
     def graph(self, length=10):
-        records = self.match_set.order_by("start_time")[::-1][:length]
+        records = self.match_set.order_by("-start_time")[:length]
         base_val = records[0].rankedrecord.absolute_value() // 100 * 100
         plt.plot(
             range(1, len(records) + 1),
@@ -48,6 +48,7 @@ class Summoner(models.Model):
                 f"LP graph over last {len(records)} games",
                 file_name,
             )
+        plt.clf()
 
     def report_new(self):
         if not self.report_hook:
