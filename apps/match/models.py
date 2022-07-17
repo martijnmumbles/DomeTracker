@@ -66,6 +66,18 @@ class Match(models.Model):
                 self.summoner.report_hook,
                 f"A {3000 // 60} minute game? Oof, you worked for that one!",
             )
+        if self.summoner.bully_opt_in and self.vision_wards_bought < 2:
+            if self.vision_wards_bought == 1:
+                DiscordWebhook.post_to_discord(
+                    self.summoner.report_hook,
+                    f"{self.summoner.name} bought a (single) vision ward.. :thinking: Must've been a missclick.",
+                )
+            else:
+                DiscordWebhook.post_to_discord(
+                    self.summoner.report_hook,
+                    f"{self.summoner.name} didn't buy a single vision ward, clearly to leave space on the map "
+                    f"for his teammates so they also feel like they're contributing...",
+                )
 
     @staticmethod
     def update_all_new_attributes(field, name, challenges=False):
