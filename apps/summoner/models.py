@@ -7,6 +7,7 @@ from django.db.models.signals import post_save
 from apps.change.models import Change
 from model_utils import FieldTracker
 from discord_webhook import DiscordWebhook
+import time
 
 
 class Summoner(models.Model):
@@ -127,6 +128,7 @@ class Summoner(models.Model):
             matches[0].events()
 
     def poll(self):
+        time.sleep(1)
         self.update_summoner_data()
         matches_req = requests.get(
             f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{self.puu_id}/ids?start=0&count=1&queue=420",
@@ -140,11 +142,17 @@ class Summoner(models.Model):
                 else:
                     # new match found
                     match = Match.create_match(match_id, self)
-                    rank = self.get_current_rank()
-                    RankedRecord.create_record(self, match, rank)
-                    if self.report_hook:
-                        self.report_new()
-
+                    try:
+                        rank = self.get_current_rank()
+                        RankedRecord.create_record(self, match, rank)
+                        if self.report_hook:
+                            self.report_new()
+                    except:
+                        time.sleep(5)
+                        rank = self.get_current_rank()
+                        RankedRecord.create_record(self, match, rank)
+                        if self.report_hook:
+                            self.report_new()
         else:
             raise Exception(f"Failed to get matches on poll call for {self.name}")
 
