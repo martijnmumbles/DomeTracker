@@ -70,7 +70,6 @@ class YetAnotherBot(commands.Bot):
             except Summoner.DoesNotExist:
                 if Summoner.objects.count() >= 20:
                     return "Hardcoded limit set to 20 summoners to limit API call load"
-                print(requests.utils.quote(name))
                 sum_req = requests.get(
                     f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{requests.utils.quote(name)}",
                     headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
@@ -114,13 +113,10 @@ class YetAnotherBot(commands.Bot):
             else:
                 try:
                     graph = await sync_to_async(_graph)(name=args[0])
-                    print("a")
                     if graph:
-                        print("no?")
                         await ctx.channel.send(
                             graph, file=discord.File(f"graph_{args[0]}.png")
                         )
-                        print("huh")
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
 
