@@ -52,13 +52,13 @@ class YetAnotherBot(commands.Bot):
                 return f"{name} is not being tracked."
 
         @self.command(
-            brief="Shows current rank for Summoner '>rank Thelmkon'",
+            brief="Shows current rank for Summoner '<rank Thelmkon'",
             name="rank",
             pass_context=True,
         )
         async def rank(ctx, *args):
             if len(args) != 1:
-                await ctx.channel.send(f"Correct usage '>rank Thelmkon'")
+                await ctx.channel.send(f"Correct usage '<rank Thelmkon'")
             else:
                 ranked = await sync_to_async(_get_ranked)(name=args[0])
                 await ctx.channel.send(f"{ranked}")
@@ -92,7 +92,7 @@ class YetAnotherBot(commands.Bot):
         )
         async def track(ctx, *args):
             if len(args) != 1:
-                await ctx.channel.send(f"Correct usage '>track Thelmkon'")
+                await ctx.channel.send(f"Correct usage '<track Thelmkon'")
             else:
                 tracked = await sync_to_async(_track_summoner)(name=args[0])
                 await ctx.channel.send(f"{tracked}")
@@ -109,7 +109,7 @@ class YetAnotherBot(commands.Bot):
         )
         async def graph(ctx, *args):
             if len(args) != 1:
-                await ctx.channel.send(f"Correct usage '>graph Thelmkon'")
+                await ctx.channel.send(f"Correct usage '<graph Thelmkon'")
             else:
                 try:
                     graph = await sync_to_async(_graph)(name=args[0])
