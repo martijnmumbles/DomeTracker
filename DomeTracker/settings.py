@@ -23,8 +23,8 @@ load_dotenv()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = getenv("SECRET_KEY")
-
 X_RIOT_TOKEN = getenv("X_RIOT_TOKEN")
+DISCORD_TOKEN = getenv("DISCORD_TOKEN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False

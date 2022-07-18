@@ -7,6 +7,12 @@ from datetime import datetime, timezone
 from discord_webhook import DiscordWebhook
 
 
+class RiotAPIException(Exception):
+    def __init__(self, message="API did not return 200 OK"):
+        # Call the base class constructor with the parameters it needs
+        super(RiotAPIException, self).__init__(message)
+
+
 # Create your models here.
 class Match(models.Model):
     match_id = models.CharField(max_length=15)
@@ -106,6 +112,8 @@ class Match(models.Model):
         ):
             match_data = match_req.json()
             Match.write(self.match_id, match_data)
+        else:
+            raise RiotAPIException()
 
     @staticmethod
     def create_match(match_id, summoner):
@@ -155,6 +163,8 @@ class Match(models.Model):
                     match.save()
                     Match.write(match_id, match_data)
                     return match
+        else:
+            raise RiotAPIException(f"Failed to create match: {match_req.json()}")
 
     @staticmethod
     def find_last_ranked(summoner):
@@ -166,7 +176,7 @@ class Match(models.Model):
             for match in match_req.json():
                 return match
         else:
-            raise Exception(f"Can't find any rank records fur {summoner.puu_id}")
+            raise RiotAPIException(f"Failed to find ranked history: {match_req.json()}")
 
     @staticmethod
     def write(match_id, match):

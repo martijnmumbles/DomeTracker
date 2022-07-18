@@ -15,3 +15,6 @@ Dome
 
 # match records
 /matches/*
+
+# logs
+*.log

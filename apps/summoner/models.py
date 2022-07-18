@@ -1,7 +1,10 @@
 from django.db import models
 import requests
 from django.conf import settings
-from apps.match.models import Match, RankedRecord
+from apps.match.models import Match, RankedRecord, RiotAPIException
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from django.db.models.signals import post_save
 from apps.change.models import Change
@@ -31,7 +34,7 @@ class Summoner(models.Model):
             "puu_id": self.puu_id,
         }
 
-    def graph(self, length=10):
+    def graph(self, length=10, post=True):
         records = self.match_set.order_by("-start_time")[:length]
         base_val = records[0].rankedrecord.absolute_value() // 100 * 100
         plt.plot(
@@ -43,13 +46,14 @@ class Summoner(models.Model):
         )
         file_name = f"graph_{records[0].summoner.name}.png"
         plt.savefig(file_name)
-        if self.report_hook:
+        if self.report_hook and post:
             DiscordWebhook.post_image_to_discord(
                 self.report_hook,
                 f"LP graph over last {len(records)} games",
                 file_name,
             )
         plt.clf()
+        return f"LP graph over last {len(records)} games"
 
     def report_new(self):
         if not self.report_hook:
@@ -154,7 +158,9 @@ class Summoner(models.Model):
                         if self.report_hook:
                             self.report_new()
         else:
-            raise Exception(f"Failed to get matches on poll call for {self.name}")
+            raise RiotAPIException(
+                f"Failed to poll match list: {matches_req.json()} {self.name}"
+            )
 
     def update_summoner_data(self):
         sum_req = requests.get(
@@ -168,8 +174,8 @@ class Summoner(models.Model):
             self.account_id = reply.get("accountId")
             self.save()
         else:
-            raise Exception(
-                f"Failed to get summoner information on update_summoner call, {sum_req.json()}"
+            raise RiotAPIException(
+                f"Failed to update summoner info: {sum_req.json()} {self.puu_id}"
             )
 
     def get_current_rank(self):
@@ -182,8 +188,8 @@ class Summoner(models.Model):
                 if rank.get("queueType") == "RANKED_SOLO_5x5":
                     return rank
         else:
-            raise Exception(
-                f"Failed to get rank or match history information on create_summoner call for {self.name}"
+            raise RiotAPIException(
+                f"Failed to find rank info: {rank_req} {self.summoner_id}"
             )
 
     @staticmethod
@@ -211,9 +217,7 @@ class Summoner(models.Model):
                 new_sum.report_new()
             return new_sum
         else:
-            raise Exception(
-                f"Failed to get summoner information on create_summoner call for {name}"
-            )
+            raise RiotAPIException(f"Failed to find Summoner: {sum_req.json()} {name}")
 
     @staticmethod
     def on_update(sender, instance, **kwargs):
