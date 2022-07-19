@@ -319,7 +319,7 @@ class RankedRecord(models.Model):
 
     def absolute_value(self):
         if self.tier > 5:
-            return self.tier * 400 + self.rank * 100 + self.lp - 300
+            return self.tier * 400 + self.lp
         return self.tier * 400 + self.rank * 100 + self.lp
 
     @staticmethod
