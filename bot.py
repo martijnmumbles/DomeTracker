@@ -60,7 +60,7 @@ class YetAnotherBot(commands.Bot):
             if len(args) == 0:
                 await ctx.channel.send(f"Correct usage '<rank Thelmkon'")
             else:
-                name = " ".join(str(e for e in args))
+                name = " ".join(str(e) for e in args)
                 ranked = await sync_to_async(_get_ranked)(name=name)
                 await ctx.channel.send(f"{ranked}")
 
@@ -95,7 +95,7 @@ class YetAnotherBot(commands.Bot):
             if len(args) == 0:
                 await ctx.channel.send(f"Correct usage '<track Thelmkon'")
             else:
-                name = " ".join(str(e for e in args))
+                name = " ".join(str(e) for e in args)
                 tracked = await sync_to_async(_track_summoner)(name=name)
                 await ctx.channel.send(f"{tracked}")
 
@@ -110,10 +110,10 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def graph(ctx, *args):
-            if len(args) == 1:
+            if len(args) == 0:
                 await ctx.channel.send(f"Correct usage '<graph Thelmkon'")
             else:
-                name = " ".join(str(e for e in args))
+                name = " ".join(str(e) for e in args)
                 try:
                     graph = await sync_to_async(_graph)(name=name)
                     if graph:
