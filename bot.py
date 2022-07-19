@@ -57,10 +57,11 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def rank(ctx, *args):
-            if len(args) != 1:
+            if len(args) == 0:
                 await ctx.channel.send(f"Correct usage '<rank Thelmkon'")
             else:
-                ranked = await sync_to_async(_get_ranked)(name=args[0])
+                name = " ".join(str(e for e in args))
+                ranked = await sync_to_async(_get_ranked)(name=name)
                 await ctx.channel.send(f"{ranked}")
 
         def _track_summoner(name):
@@ -91,10 +92,11 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def track(ctx, *args):
-            if len(args) != 1:
+            if len(args) == 0:
                 await ctx.channel.send(f"Correct usage '<track Thelmkon'")
             else:
-                tracked = await sync_to_async(_track_summoner)(name=args[0])
+                name = " ".join(str(e for e in args))
+                tracked = await sync_to_async(_track_summoner)(name=name)
                 await ctx.channel.send(f"{tracked}")
 
         def _graph(name):
@@ -108,14 +110,15 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def graph(ctx, *args):
-            if len(args) != 1:
+            if len(args) == 1:
                 await ctx.channel.send(f"Correct usage '<graph Thelmkon'")
             else:
+                name = " ".join(str(e for e in args))
                 try:
-                    graph = await sync_to_async(_graph)(name=args[0])
+                    graph = await sync_to_async(_graph)(name=name)
                     if graph:
                         await ctx.channel.send(
-                            graph, file=discord.File(f"graph_{args[0]}.png")
+                            graph, file=discord.File(f"graph_{name}.png")
                         )
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
