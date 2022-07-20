@@ -46,7 +46,7 @@ class Match(models.Model):
 
     def events(self):
         event_list = [
-            f"{self.summoner.name} went {self.kills}/{self.deaths}/{self.assists}, {self.kda} kda, "
+            f"{self.summoner.name} went {self.kills}/{self.deaths}/{self.assists}, {round(self.kda, 2)} kda, "
             f"{self.vision_score} vision score."
         ]
         if self.penta_kills > 0:
