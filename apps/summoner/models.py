@@ -129,7 +129,8 @@ class Summoner(models.Model):
                         f"fight, bring them down!",
                     )
             self.graph(10)
-            matches[0].events()
+            for match in matches[0].events():
+                DiscordWebhook.post_to_discord(self.report_hook, match)
 
     def poll(self):
         time.sleep(1)

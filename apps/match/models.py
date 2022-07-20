@@ -45,45 +45,44 @@ class Match(models.Model):
         return f"Match {self.match_id} for {self.summoner.name}"
 
     def events(self):
+        event_list = [
+            f"{self.summoner.name} went {self.kills}/{self.deaths}/{self.assists}, {self.vision_score} vision score."
+        ]
         if self.penta_kills > 0:
-            DiscordWebhook.post_to_discord(
-                self.summoner.report_hook,
+            event_list.append(
                 f"penta? penta? Penta? PENTA?! PENTAKILL BAAAYBBEEE! {self.summoner.name.upper()} does not believe "
-                f'"sharing is caring" on {self.champion_name}',
+                f'"sharing is caring" on {self.champion_name}'
             )
         elif self.quadra_kills > 0:
-            DiscordWebhook.post_to_discord(
-                self.summoner.report_hook,
-                f"EPIC! {self.summoner.name.upper()} SECURED A QUADRA KILL ON {self.champion_name.upper()}",
+            event_list.append(
+                f"EPIC! {self.summoner.name.upper()} SECURED A QUADRA KILL ON {self.champion_name.upper()}"
             )
         elif self.triple_kills > 0:
-            DiscordWebhook.post_to_discord(
-                self.summoner.report_hook,
-                f"{self.summoner.name} with the Trip-Trip-Triple kill on {self.champion_name}! Let's go!",
+            event_list.append(
+                f"{self.summoner.name} with the Trip-Trip-Triple kill on {self.champion_name}! Let's go!"
             )
+        if self.first_blood_kill:
+            event_list.append(f"Bloodthirsty {self.summoner.name} claimed first blood!")
         if self.epic_steals > 0:
-            DiscordWebhook.post_to_discord(
-                self.summoner.report_hook,
+            event_list.append(
                 f"{self.summoner.name} coming in like a thief in the night. \"What's mine is mine, and what's yours is "
-                f'also mine". Assisted in an epic monster steal!',
+                f'also mine". Assisted in an epic monster steal!'
             )
         if self.duration > 3000:
-            DiscordWebhook.post_to_discord(
-                self.summoner.report_hook,
-                f"A {3000 // 60} minute game? Oof, you worked for that one!",
+            event_list.append(
+                f"A {3000 // 60} minute game? Oof, you worked for that one!"
             )
         if self.summoner.bully_opt_in and self.vision_wards_bought < 2:
             if self.vision_wards_bought == 1:
-                DiscordWebhook.post_to_discord(
-                    self.summoner.report_hook,
+                event_list.append(
                     f"{self.summoner.name} bought a (single) vision ward.. :thinking: Must've been a missclick.",
                 )
             else:
-                DiscordWebhook.post_to_discord(
-                    self.summoner.report_hook,
+                event_list.append(
                     f"{self.summoner.name} didn't buy a single vision ward, clearly to leave space on the map "
-                    f"for his teammates so they also feel like they're contributing...",
+                    f"for his teammates so they also feel like they're contributing..."
                 )
+        return event_list
 
     @staticmethod
     def update_all_new_attributes(field, name, challenges=False):

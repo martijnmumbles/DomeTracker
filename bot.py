@@ -11,6 +11,7 @@ import django
 
 django.setup()
 from apps.summoner.models import Summoner, RiotAPIException
+from apps.match.models import Match
 from asgiref.sync import sync_to_async
 
 
@@ -31,6 +32,17 @@ class YetAnotherBot(commands.Bot):
     # noinspection PyMethodMayBeStatic
     async def on_ready(self):
         print("YAB ready.")
+
+    @staticmethod
+    def check_param(*args, min_length=1, max_length=None):
+        if len(args) >= min_length and not max_length or len(args) <= max_length:
+            return " ".join(str(e) for e in args)
+        else:
+            return None
+
+    @staticmethod
+    def sanitize(user_input):
+        return requests.utils.quote(user_input)
 
     def add_commands(self):
         @self.event
@@ -57,12 +69,12 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def rank(ctx, *args):
-            if len(args) == 0:
-                await ctx.channel.send(f"Correct usage '<rank Thelmkon'")
-            else:
-                name = " ".join(str(e) for e in args)
+            name = YetAnotherBot.check_param(*args)
+            if name:
                 ranked = await sync_to_async(_get_ranked)(name=name)
                 await ctx.channel.send(f"{ranked}")
+            else:
+                await ctx.channel.send(f"Correct usage '<rank Thelmkon'")
 
         def _track_summoner(name):
             try:
@@ -72,7 +84,7 @@ class YetAnotherBot(commands.Bot):
                 if Summoner.objects.count() >= 20:
                     return "Hardcoded limit set to 20 summoners to limit API call load"
                 sum_req = requests.get(
-                    f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{requests.utils.quote(name)}",
+                    f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{YetAnotherBot.sanitize(name)}",
                     headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
                 )
                 if sum_req.status_code == 200:
@@ -92,12 +104,12 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def track(ctx, *args):
-            if len(args) == 0:
-                await ctx.channel.send(f"Correct usage '<track Thelmkon'")
-            else:
-                name = " ".join(str(e) for e in args)
+            name = YetAnotherBot.check_param(*args)
+            if name:
                 tracked = await sync_to_async(_track_summoner)(name=name)
                 await ctx.channel.send(f"{tracked}")
+            else:
+                await ctx.channel.send(f"Correct usage '<track Thelmkon'")
 
         def _graph(name):
             summ = Summoner.objects.get(name=name)
@@ -110,10 +122,8 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def graph(ctx, *args):
-            if len(args) == 0:
-                await ctx.channel.send(f"Correct usage '<graph Thelmkon'")
-            else:
-                name = " ".join(str(e) for e in args)
+            name = YetAnotherBot.check_param(*args)
+            if name:
                 try:
                     graph = await sync_to_async(_graph)(name=name)
                     if graph:
@@ -122,6 +132,81 @@ class YetAnotherBot(commands.Bot):
                         )
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
+            else:
+                await ctx.channel.send(f"Correct usage '<graph Thelmkon'")
+
+        def _matches(name):
+            summ = Summoner.objects.get(name=name)
+            val = " ".join(
+                [ma.match_id for ma in summ.match_set.order_by("-start_time")]
+            )
+            return f"{val}"
+
+        @self.command(
+            brief="Show recorded matches for summoner",
+            name="matches",
+            pass_context=True,
+        )
+        async def matches(ctx, *args):
+            name = YetAnotherBot.check_param(*args)
+            if name:
+                try:
+                    match_list = await sync_to_async(_matches)(name=name)
+                    if match_list:
+                        await ctx.channel.send(match_list)
+                except Summoner.DoesNotExist:
+                    await ctx.channel.send(f"Can't find summoner by that name")
+            else:
+                await ctx.channel.send(f"Correct usage '<matches Thelmkon'")
+
+        def _match_info(match_id):
+            events = []
+            match_list = Match.objects.filter(match_id=match_id)
+            for match in match_list:
+                events += match.events()
+            return events
+
+        @self.command(
+            brief="Show match info for match ID",
+            name="match_info",
+            pass_context=True,
+        )
+        async def match_info(ctx, *args):
+            match_id = YetAnotherBot.check_param(*args, min_length=1, max_length=1)
+            if match_id:
+                try:
+                    match_events = await sync_to_async(_match_info)(match_id=match_id)
+                    for event in match_events:
+                        await ctx.channel.send(event)
+                except Summoner.DoesNotExist:
+                    await ctx.channel.send(f"Can't find match by that ID")
+            else:
+                await ctx.channel.send(f"Correct usage '<match_info EUW1_5889986459")
+
+        def _last_match(name):
+            summ = Summoner.objects.get(name=name)
+            print(summ.name)
+            match_id = summ.match_set.order_by("-start_time").first().match_id
+            print(match_id)
+            val = _match_info(match_id)
+            return val
+
+        @self.command(
+            brief="Show match info for last recorded match for summoner",
+            name="last_match",
+            pass_context=True,
+        )
+        async def last_match(ctx, *args):
+            name = YetAnotherBot.check_param(*args)
+            if name:
+                try:
+                    match_events = await sync_to_async(_last_match)(name=name)
+                    for event in match_events:
+                        await ctx.channel.send(event)
+                except Summoner.DoesNotExist:
+                    await ctx.channel.send(f"Can't find summoner by that name")
+            else:
+                await ctx.channel.send(f"Correct usage '<last_match Thelmkon")
 
 
 if __name__ == "__main__":
