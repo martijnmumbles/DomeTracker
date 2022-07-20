@@ -82,7 +82,7 @@ class Match(models.Model):
             else:
                 event_list.append(
                     f"{self.summoner.name} didn't buy a single vision ward, clearly to leave space on the map "
-                    f"for his teammates so they also feel like they're contributing..."
+                    f"for their teammates so they also feel like they're contributing..."
                 )
         if self.summoner.bully_opt_in and self.vision_score < 10:
             meme = generate_meme(
