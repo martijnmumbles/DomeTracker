@@ -4,7 +4,7 @@ from django.db import models
 import os
 import json
 from datetime import datetime, timezone
-from discord_webhook import DiscordWebhook
+from imgflip_meme import generate_meme
 
 
 class RiotAPIException(Exception):
@@ -46,7 +46,8 @@ class Match(models.Model):
 
     def events(self):
         event_list = [
-            f"{self.summoner.name} went {self.kills}/{self.deaths}/{self.assists}, {self.vision_score} vision score."
+            f"{self.summoner.name} went {self.kills}/{self.deaths}/{self.assists}, {self.kda} kda, "
+            f"{self.vision_score} vision score."
         ]
         if self.penta_kills > 0:
             event_list.append(
@@ -75,12 +76,29 @@ class Match(models.Model):
         if self.summoner.bully_opt_in and self.vision_wards_bought < 2:
             if self.vision_wards_bought == 1:
                 event_list.append(
-                    f"{self.summoner.name} bought a (single) vision ward.. :thinking: Must've been a missclick.",
+                    f"{self.summoner.name} bought a (single) vision ward all game.. :thinking: And that was probably a "
+                    f"missclick.",
                 )
             else:
                 event_list.append(
                     f"{self.summoner.name} didn't buy a single vision ward, clearly to leave space on the map "
                     f"for his teammates so they also feel like they're contributing..."
+                )
+        if self.summoner.bully_opt_in and self.vision_score < 10:
+            meme = generate_meme(
+                322841258,
+                [
+                    f"{self.summoner.name}: The API will return a single digit vision score.",
+                    "Must be a bug, right?",
+                    "Must be a bug?",
+                ],
+            )
+            if meme.get("success"):
+                event_list.append(meme.get("data").get("url"))
+            else:
+                event_list.append(
+                    f"POTENTIAL API ERROR, single digit vision score! Must be a bug, right {self.summoner.name}"
+                    f"?.. Oh say it *ain't* so.."
                 )
         return event_list
 

@@ -25,6 +25,7 @@ load_dotenv()
 SECRET_KEY = getenv("SECRET_KEY")
 X_RIOT_TOKEN = getenv("X_RIOT_TOKEN")
 DISCORD_TOKEN = getenv("DISCORD_TOKEN")
+IMGFLIP_PW = getenv("IMGFLIP_PW")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
