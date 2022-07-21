@@ -59,7 +59,7 @@ class Summoner(models.Model):
             f"{round(kills/length, 2)} kills ({min_kills} min, {max_kills} max)\n"
             f"{round(deaths/length, 2)} deaths ({min_deaths} min, {max_deaths} max)\n"
             f"{round(assists/length, 2)} assists ({min_assists} min, {max_assists} max)\n"
-            f"A {round(kda/length, 2)} KDA ({min_kda} min, {max_kda} max)\n\n"
+            f"A {round(kda/length, 2)} KDA ({round(min_kda, 2)} min, {round(max_kda, 2)} max)\n\n"
             f"{wins} wins, {length-wins} losses"
         )
 
