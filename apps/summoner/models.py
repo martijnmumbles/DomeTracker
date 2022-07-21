@@ -34,6 +34,35 @@ class Summoner(models.Model):
             "puu_id": self.puu_id,
         }
 
+    def recent_stats(self):
+        records = self.match_set.order_by("-start_time")[:10]
+        length = len(records)
+        kills = deaths = assists = kda = wins = 0
+        min_kills = min_deaths = min_assists = min_kda = 0
+        max_kills = max_deaths = max_assists = max_kda = 0
+        for match in records:
+            kills += match.kills
+            min_kills = match.kills if min_kills > match.kills else min_kills
+            max_kills = match.kills if max_kills < match.kills else max_kills
+            deaths += match.deaths
+            min_deaths = match.deaths if min_deaths > match.deaths else min_deaths
+            max_deaths = match.deaths if max_deaths < match.deaths else max_deaths
+            assists += match.assists
+            min_assists = match.assists if min_assists > match.assists else min_assists
+            max_assists = match.assists if max_assists < match.assists else max_assists
+            kda += match.kda
+            min_kda = match.kda if min_kda > match.kda else min_kda
+            max_kda = match.kda if max_kda < match.kda else max_kda
+            wins += 1 if match.win else 0
+        return (
+            f"Over the last {length} games, {self.name} has been averaging:\n"
+            f"{round(kills/length, 2)} kills ({min_kills} min, {max_kills} max)\n"
+            f"{round(deaths/length, 2)} deaths ({min_deaths} min, {max_deaths} max)\n"
+            f"{round(assists/length, 2)} assists ({min_assists} min, {max_assists} max)\n"
+            f"A {round(kda/length, 2)} KDA ({min_kda} min, {max_kda} max)\n\n"
+            f"{wins} wins, {length-wins} losses"
+        )
+
     def graph(self, length=10, post=True):
         records = self.match_set.order_by("-start_time")[:length]
         base_val = records[0].rankedrecord.absolute_value() // 100 * 100

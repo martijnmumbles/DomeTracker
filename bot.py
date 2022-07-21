@@ -208,6 +208,26 @@ class YetAnotherBot(commands.Bot):
             else:
                 await ctx.channel.send(f"Correct usage '<last_match Thelmkon")
 
+        def _recent(name):
+            summ = Summoner.objects.get(name=name)
+            return summ.recent_stats()
+
+        @self.command(
+            brief="Show stats for recent matches for summoner",
+            name="recent",
+            pass_context=True,
+        )
+        async def recent_stats(ctx, *args):
+            name = YetAnotherBot.check_param(*args)
+            if name:
+                try:
+                    stats = await sync_to_async(_recent)(name=name)
+                    await ctx.channel.send(stats)
+                except Summoner.DoesNotExist:
+                    await ctx.channel.send(f"Can't find summoner by that name")
+            else:
+                await ctx.channel.send(f"Correct usage '<recent Thelmkon")
+
 
 if __name__ == "__main__":
     client = YetAnotherBot(prefix="<", bot=False)
