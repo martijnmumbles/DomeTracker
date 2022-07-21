@@ -38,7 +38,7 @@ class Summoner(models.Model):
         records = self.match_set.order_by("-start_time")[:10]
         length = len(records)
         kills = deaths = assists = kda = wins = 0
-        min_kills = min_deaths = min_assists = min_kda = 0
+        min_kills = min_deaths = min_assists = min_kda = 10000
         max_kills = max_deaths = max_assists = max_kda = 0
         for match in records:
             kills += match.kills
