@@ -136,8 +136,11 @@ class Match(models.Model):
         ):
             match_data = match_req.json()
             Match.write(self.match_id, match_data)
+            print(f"Updated {self.match_id}")
         else:
-            raise RiotAPIException()
+            raise RiotAPIException(
+                f"{self.match_id}: {match_req.status_code} {match_req.json()}"
+            )
 
     @staticmethod
     def create_match(match_id, summoner):
