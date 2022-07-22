@@ -5,6 +5,7 @@ import os
 import json
 from datetime import datetime, timezone
 from imgflip_meme import generate_meme
+import time
 
 
 class RiotAPIException(Exception):
@@ -105,10 +106,14 @@ class Match(models.Model):
     @staticmethod
     def update_all_new_attributes(field, name, challenges=False):
         for match in Match.objects.all():
-            match.update_new_attribute(field, name, challenges)
+            time.sleep(0.2)
+            val = match.update_new_attribute(field, name, challenges)
+            if not val:
+                print(f"not found, {match.match_id} {match.summoner.name}")
 
     def update_new_attribute(self, field, name, challenges=False):
         loaded = Match.read(self.match_id)
+
         for player in loaded.get("info").get("participants"):
             if player.get("puuid") == self.summoner.puu_id:
                 if challenges:
@@ -117,6 +122,8 @@ class Match(models.Model):
                     value = player.get(name)
                 setattr(self, field, value)
                 self.save()
+                return True
+        return False
 
     def restore_puuid(self):
         match_req = requests.get(
