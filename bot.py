@@ -258,8 +258,8 @@ class YetAnotherBot(commands.Bot):
                     if stat == "kda"
                     else "total"
                 )
-                results =
-                return [f"Showing {keyword} {stat} over the last 7 days"]+results
+                results = []
+                return [f"Showing {keyword} {stat} over the last 7 days"] + results
 
             return None
 
