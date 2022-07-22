@@ -139,11 +139,13 @@ class Match(models.Model):
             print(f"Updated {self.match_id}")
         else:
             if match_req.status_code == 429:
-                time.sleep(5)
+                print("Ratelimited, retrying in a minute")
+                time.sleep(60)
                 self.restore_puuid()
-            raise RiotAPIException(
-                f"{self.match_id}: {match_req.status_code} {match_req.json()}"
-            )
+            else:
+                raise RiotAPIException(
+                    f"{self.match_id}: {match_req.status_code} {match_req.json()}"
+                )
 
     @staticmethod
     def create_match(match_id, summoner):

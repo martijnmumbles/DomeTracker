@@ -11,6 +11,7 @@ from apps.change.models import Change
 from model_utils import FieldTracker
 from discord_webhook import DiscordWebhook
 import time
+from datetime import datetime, timedelta, timezone, time as t
 
 
 class Summoner(models.Model):
@@ -33,6 +34,48 @@ class Summoner(models.Model):
             "account_id": self.account_id,
             "puu_id": self.puu_id,
         }
+
+    def get_weekly(self):
+        result = {
+            "epic_steals": 0,
+            "kills": 0,
+            "deaths": 0,
+            "assists": 0,
+            "kda": 0,
+            "win": 0,
+            "vision_score": 0,
+            "first_blood_kill": 0,
+            "first_blood_assist": 0,
+            "first_tower_kill": 0,
+            "first_tower_assist": 0,
+        }
+        matches = self.match_set.filter(
+            start_time__range=[
+                (
+                    datetime.combine(datetime.now(timezone.utc), t.min)
+                    - timedelta(weeks=1)
+                ).replace(tzinfo=timezone.utc),
+                datetime.now(timezone.utc),
+            ]
+        )
+        for match in matches:
+            result["epic_steals"] += match.epic_steals
+            result["kills"] += match.kills
+            result["deaths"] += match.deaths
+            result["assists"] += match.assists
+            result["kda"] = match.kda if match.kda > result["kda"] else result["kda"]
+            result["win"] += match.win
+            result["vision_score"] += match.vision_score
+            result["first_blood_kill"] += match.first_blood_kill
+            result["first_blood_assist"] += match.first_blood_assist
+            result["first_tower_kill"] += match.first_tower_kill
+            result["first_tower_assist"] += match.first_tower_assist
+        if matches.exists():
+            result["vision_score"] = round(result["vision_score"] / len(matches), 2)
+            result["kda"] = round(result["kda"], 2)
+            return result
+        else:
+            return None
 
     def recent_stats(self):
         records = self.match_set.order_by("-start_time")[:10]

@@ -1,3 +1,5 @@
+import datetime
+
 import discord
 from discord.ext import commands
 import logging
@@ -45,6 +47,20 @@ class YetAnotherBot(commands.Bot):
         return requests.utils.quote(user_input)
 
     def add_commands(self):
+        stats_supported = [
+            "epic_steals",
+            "kills",
+            "deaths",
+            "assists",
+            "kda",
+            "win",
+            "vision_score",
+            "first_blood_kill",
+            "first_blood_assist",
+            "first_tower_kill",
+            "first_tower_assist",
+        ]
+
         @self.event
         async def on_command_error(ctx, error):
             if isinstance(error, discord.ext.commands.errors.CommandNotFound):
@@ -227,6 +243,39 @@ class YetAnotherBot(commands.Bot):
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
                 await ctx.channel.send(f"Correct usage '<recent Thelmkon")
+
+        def _weekly(stat):
+            if stat in stats_supported:
+                rankings = []
+                for summ in Summoner.objects.all():
+                    week = summ.get_weekly()
+                    if week:
+                        rankings.append((summ.name, week))
+                keyword = (
+                    "average"
+                    if stat == "vision_score"
+                    else "top"
+                    if stat == "kda"
+                    else "total"
+                )
+                results =
+                return [f"Showing {keyword} {stat} over the last 7 days"]+results
+
+            return None
+
+        @self.command(
+            brief="Show weekly rankings",
+            name="weekly",
+            pass_context=True,
+        )
+        async def weekly(ctx, *args):
+            stat = YetAnotherBot.check_param(*args, 1, 1)
+            results = _weekly(stat)
+            if results:
+                for res in results:
+                    await ctx.channel.send(res)
+            else:
+                await ctx.channel.send(f"Supported stats: {' '.join(stats_supported)}.")
 
 
 if __name__ == "__main__":
