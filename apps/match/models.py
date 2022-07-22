@@ -138,6 +138,9 @@ class Match(models.Model):
             Match.write(self.match_id, match_data)
             print(f"Updated {self.match_id}")
         else:
+            if match_req.status_code == 429:
+                time.sleep(5)
+                self.restore_puuid()
             raise RiotAPIException(
                 f"{self.match_id}: {match_req.status_code} {match_req.json()}"
             )
