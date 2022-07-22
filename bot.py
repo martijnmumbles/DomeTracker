@@ -245,22 +245,27 @@ class YetAnotherBot(commands.Bot):
                 await ctx.channel.send(f"Correct usage '<recent Thelmkon")
 
         def _weekly(stat):
+            print(stat)
             if stat in stats_supported:
                 rankings = []
+                print("attempting")
                 for summ in Summoner.objects.all():
+                    print(summ.name)
                     week = summ.get_weekly()
                     if week:
                         rankings.append((summ.name, week))
-                keyword = (
-                    "average"
-                    if stat == "vision_score"
-                    else "top"
-                    if stat == "kda"
-                    else "total"
+                if stat == "vision_score":
+                    keyword = "average"
+                elif stat == "kda":
+                    keyword = "top"
+                else:
+                    keyword = "total"
+                results = [(s[0], s[1][stat]) for s in rankings if s[1][stat] != 0]
+                results.sort(key=lambda tup: tup[1], reverse=True)
+                printable = [f"{s[0]}: {s[1]}" for s in results]
+                return f"Showing {keyword} {stat} over the last 7 days:\n" + "\n".join(
+                    printable
                 )
-                results = []
-                return [f"Showing {keyword} {stat} over the last 7 days"] + results
-
             return None
 
         @self.command(
@@ -269,13 +274,16 @@ class YetAnotherBot(commands.Bot):
             pass_context=True,
         )
         async def weekly(ctx, *args):
-            stat = YetAnotherBot.check_param(*args, 1, 1)
-            results = _weekly(stat)
-            if results:
-                for res in results:
-                    await ctx.channel.send(res)
-            else:
+            stat = YetAnotherBot.check_param(*args, min_length=1, max_length=1)
+            if not stat:
                 await ctx.channel.send(f"Supported stats: {' '.join(stats_supported)}.")
+                return
+            results = await sync_to_async(_weekly)(stat=stat)
+            print(results)
+            if results:
+                await ctx.channel.send(results)
+            else:
+                await ctx.channel.send(f"Issue processing results.")
 
 
 if __name__ == "__main__":
