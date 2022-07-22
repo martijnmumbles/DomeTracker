@@ -1,5 +1,5 @@
 from django.db import models
-import requests
+from riot_api import call_api
 from django.conf import settings
 from apps.match.models import Match, RankedRecord, RiotAPIException
 import matplotlib
@@ -205,11 +205,9 @@ class Summoner(models.Model):
                 DiscordWebhook.post_to_discord(self.report_hook, event)
 
     def poll(self):
-        time.sleep(1)
         self.update_summoner_data()
-        matches_req = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{self.puu_id}/ids?start=0&count=1&queue=420",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        matches_req = call_api(
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{self.puu_id}/ids?start=0&count=1&queue=420"
         )
 
         if matches_req.status_code == 200:
@@ -236,9 +234,8 @@ class Summoner(models.Model):
             )
 
     def update_summoner_data(self):
-        sum_req = requests.get(
-            f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{self.puu_id}",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        sum_req = call_api(
+            f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{self.puu_id}"
         )
         if sum_req.status_code == 200:
             reply = sum_req.json()
@@ -252,9 +249,8 @@ class Summoner(models.Model):
             )
 
     def get_current_rank(self):
-        rank_req = requests.get(
-            f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/{self.summoner_id}",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        rank_req = call_api(
+            f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/{self.summoner_id}"
         )
         if rank_req.status_code == 200:
             for rank in rank_req.json():
@@ -267,9 +263,8 @@ class Summoner(models.Model):
 
     @staticmethod
     def create_summoner(name, report_hook=None):
-        sum_req = requests.get(
-            f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        sum_req = call_api(
+            f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}"
         )
         if sum_req.status_code == 200:
             reply_sum = sum_req.json()

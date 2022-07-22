@@ -1,11 +1,10 @@
-import requests
-from django.conf import settings
 from django.db import models
 import os
 import json
 from datetime import datetime, timezone
 from imgflip_meme import generate_meme
 import time
+from riot_api import call_api
 
 
 class RiotAPIException(Exception):
@@ -126,9 +125,8 @@ class Match(models.Model):
         return False
 
     def restore_puuid(self):
-        match_req = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/{self.match_id}",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        match_req = call_api(
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/{self.match_id}"
         )
         if (
             match_req.status_code == 200
@@ -138,20 +136,14 @@ class Match(models.Model):
             Match.write(self.match_id, match_data)
             print(f"Updated {self.match_id}")
         else:
-            if match_req.status_code == 429:
-                print("Ratelimited, retrying in a minute")
-                time.sleep(60)
-                self.restore_puuid()
-            else:
-                raise RiotAPIException(
-                    f"{self.match_id}: {match_req.status_code} {match_req.json()}"
-                )
+            raise RiotAPIException(
+                f"{self.match_id}: {match_req.status_code} {match_req.json()}"
+            )
 
     @staticmethod
     def create_match(match_id, summoner):
-        match_req = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        match_req = call_api(
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}"
         )
         if (
             match_req.status_code == 200
@@ -200,9 +192,8 @@ class Match(models.Model):
 
     @staticmethod
     def find_last_ranked(summoner):
-        match_req = requests.get(
-            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{summoner.puu_id}/ids?start=0&count=1&queue=420",
-            headers={"X-Riot-Token": settings.X_RIOT_TOKEN},
+        match_req = call_api(
+            f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{summoner.puu_id}/ids?start=0&count=1&queue=420"
         )
         if match_req.status_code == 200 and match_req.json():
             for match in match_req.json():
