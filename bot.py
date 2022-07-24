@@ -64,7 +64,7 @@ class YetAnotherBot(commands.Bot):
         @self.event
         async def on_command_error(ctx, error):
             if isinstance(error, discord.ext.commands.errors.CommandNotFound):
-                await ctx.channel.send("That command wasn't found! Try <help")
+                await ctx.channel.send("That command wasn't found! Try $help")
 
         # @self.command(name="echo", pass_context=True)
         # async def echo(ctx):
@@ -80,7 +80,7 @@ class YetAnotherBot(commands.Bot):
                 return f"{name} is not being tracked."
 
         @self.command(
-            brief="Shows current rank for Summoner '<rank Thelmkon'",
+            brief="Shows current rank for Summoner '$rank Thelmkon'",
             name="rank",
             pass_context=True,
         )
@@ -90,7 +90,7 @@ class YetAnotherBot(commands.Bot):
                 ranked = await sync_to_async(_get_ranked)(name=name)
                 await ctx.channel.send(f"{ranked}")
             else:
-                await ctx.channel.send(f"Correct usage '<rank Thelmkon'")
+                await ctx.channel.send(f"Correct usage '$rank Thelmkon'")
 
         def _track_summoner(name):
             try:
@@ -125,7 +125,7 @@ class YetAnotherBot(commands.Bot):
                 tracked = await sync_to_async(_track_summoner)(name=name)
                 await ctx.channel.send(f"{tracked}")
             else:
-                await ctx.channel.send(f"Correct usage '<track Thelmkon'")
+                await ctx.channel.send(f"Correct usage '$track Thelmkon'")
 
         def _graph(name):
             summ = Summoner.objects.get(name=name)
@@ -149,7 +149,7 @@ class YetAnotherBot(commands.Bot):
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
-                await ctx.channel.send(f"Correct usage '<graph Thelmkon'")
+                await ctx.channel.send(f"Correct usage '$graph Thelmkon'")
 
         def _matches(name):
             summ = Summoner.objects.get(name=name)
@@ -173,7 +173,7 @@ class YetAnotherBot(commands.Bot):
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
-                await ctx.channel.send(f"Correct usage '<matches Thelmkon'")
+                await ctx.channel.send(f"Correct usage '$matches Thelmkon'")
 
         def _match_info(match_id):
             events = []
@@ -197,7 +197,7 @@ class YetAnotherBot(commands.Bot):
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find match by that ID")
             else:
-                await ctx.channel.send(f"Correct usage '<match_info EUW1_5889986459")
+                await ctx.channel.send(f"Correct usage '$match_info EUW1_5889986459")
 
         def _last_match(name):
             summ = Summoner.objects.get(name=name)
@@ -222,7 +222,7 @@ class YetAnotherBot(commands.Bot):
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
-                await ctx.channel.send(f"Correct usage '<last_match Thelmkon")
+                await ctx.channel.send(f"Correct usage '$last_match Thelmkon")
 
         def _recent(name):
             summ = Summoner.objects.get(name=name)
@@ -242,7 +242,7 @@ class YetAnotherBot(commands.Bot):
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
-                await ctx.channel.send(f"Correct usage '<recent Thelmkon")
+                await ctx.channel.send(f"Correct usage '$recent Thelmkon")
 
         def _weekly(stat):
             print(stat)
@@ -287,5 +287,5 @@ class YetAnotherBot(commands.Bot):
 
 
 if __name__ == "__main__":
-    client = YetAnotherBot(prefix="<", bot=False)
+    client = YetAnotherBot(prefix="$", bot=False)
     client.run(settings.DISCORD_TOKEN)
