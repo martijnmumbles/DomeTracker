@@ -172,7 +172,7 @@ class Summoner(models.Model):
                     DiscordWebhook.post_to_discord(
                         self.report_hook,
                         f"Promos ended, congratulations! Sally forth brave Summoner, may "
-                        f"{RankedRecord.int_to_tier(matches[1].rankedrecord.tier)} be kind.",
+                        f"{RankedRecord.int_to_tier(matches[0].rankedrecord.tier)} be kind.",
                     )
             else:
                 trend = ""
@@ -187,13 +187,19 @@ class Summoner(models.Model):
                     f"{abs(matches[0].rankedrecord.absolute_value()-matches[1].rankedrecord.absolute_value())} LP."
                     f" {trend}",
                 )
-                if matches[0].rankedrecord.rank > matches[1].rankedrecord.rank:
+                if (
+                    matches[0].rankedrecord.rank > matches[1].rankedrecord.rank
+                    and not matches[0].rankedrecord.tier < matches[1].rankedrecord.tier
+                ) or matches[0].rankedrecord.tier > matches[1].rankedrecord.tier:
                     DiscordWebhook.post_to_discord(
                         self.report_hook,
                         f"Rising up to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
                         f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}!",
                     )
-                elif matches[1].rankedrecord.rank > matches[0].rankedrecord.rank:
+                elif (
+                    matches[0].rankedrecord.rank < matches[1].rankedrecord.rank
+                    or matches[0].rankedrecord.tier < matches[1].rankedrecord.tier
+                ):
                     DiscordWebhook.post_to_discord(
                         self.report_hook,
                         f"Dropped down to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
