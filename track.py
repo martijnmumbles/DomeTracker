@@ -124,7 +124,7 @@ class Poller:
 
     def new_match(self, record, last, puuid):
         record.save_to_db(self.db)
-        if record.name != "Thelmkon":
+        if record.name != "whatever25":
             return
         if record.promo and last and last.promo:
             self.compare_promos(record)
