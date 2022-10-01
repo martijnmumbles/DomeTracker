@@ -178,7 +178,7 @@ class Summoner(models.Model):
                 trend = ""
                 if len(matches) > 4:
                     trend = RankedRecord.trend(
-                        matches[0].rankedrecord, matches[1].rankedrecord
+                        matches[0].rankedrecord, matches[4].rankedrecord
                     )
                 match_result = "Gained" if matches[0].win else "Lost"
                 DiscordWebhook.post_to_discord(
