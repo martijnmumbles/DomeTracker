@@ -299,9 +299,9 @@ class RankedRecord(models.Model):
 
     @staticmethod
     def trend(current, old):
-        delta = round((current.absolute_value() - old.absolute_value()) / 5)
+        delta = round((current.absolute_value() - old.absolute_value()) / 4)
         trending = (
-            f"Netting {'+' if delta > 0 else ''}{delta} lp over the last 5 games."
+            f"Netting {'+' if delta > 0 else ''}{delta} lp over the last 4 games."
         )
         if delta < 0:
             threshold = (current.absolute_value() // 100) * 100

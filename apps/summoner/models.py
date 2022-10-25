@@ -154,13 +154,26 @@ class Summoner(models.Model):
                         DiscordWebhook.post_to_discord(
                             self.report_hook,
                             f"One step closer to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier+1)}! Keep it "
-                            f"up!",
+                            f"up! {5 - matches[0].rankedrecord.promo.losses - matches[0].rankedrecord.promo.wins}"
+                            f" matches left to play.",
                         )
                     else:
+                        if (
+                            matches[0].rankedrecord.promo.target
+                            - matches[0].rankedrecord.promo.wins
+                            == 1
+                        ):
+                            clutch = "Clutch out that last win!"
+                        else:
+                            clutch = (
+                                f"Clutch out those "
+                                f"{matches[0].rankedrecord.promo.target-matches[0].rankedrecord.promo.wins} wins!"
+                            )
                         DiscordWebhook.post_to_discord(
                             self.report_hook,
-                            f"Time to rally. Step up to the fight, bring them down! Clutch out those "
-                            f"{matches[0].rankedrecord.promo.target-matches[0].rankedrecord.promo.wins} win(s)!",
+                            f"Time to rally. Step up to the fight, bring them down! {clutch} "
+                            f"{5-matches[0].rankedrecord.promo.losses-matches[0].rankedrecord.promo.wins} matches left "
+                            f"to play.",
                         )
             elif matches[1].rankedrecord.promo:
                 if not matches[0].win:
