@@ -295,10 +295,9 @@ class Summoner(models.Model):
             for rank in rank_req.json():
                 if rank.get("queueType") == "RANKED_SOLO_5x5":
                     return rank
-        else:
-            raise RiotAPIException(
-                f"Failed to find rank info: {rank_req} {self.summoner_id}"
-            )
+        raise RiotAPIException(
+            f"Failed to find rank info: {rank_req} {self.summoner_id}"
+        )
 
     @staticmethod
     def create_summoner(name, report_hook=None):
@@ -317,11 +316,14 @@ class Summoner(models.Model):
             new_sum.save()
 
             match_id = Match.find_last_ranked(new_sum)
-            last_match = Match.create_match(match_id, new_sum)
-            rank = new_sum.get_current_rank()
-            RankedRecord.create_record(new_sum, last_match, rank)
-            if report_hook:
-                new_sum.report_new_match_found()
+            try:
+                rank = new_sum.get_current_rank()
+                last_match = Match.create_match(match_id, new_sum)
+                RankedRecord.create_record(new_sum, last_match, rank)
+                if report_hook:
+                    new_sum.report_new_match_found()
+            except RiotAPIException:
+                pass
             return new_sum
         else:
             raise RiotAPIException(f"Failed to find Summoner: {sum_req.json()} {name}")
