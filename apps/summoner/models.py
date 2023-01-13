@@ -1,7 +1,12 @@
 from django.db import models
 from riot_api import call_api
 from django.conf import settings
-from apps.match.models import Match, RankedRecord, RiotAPIException
+from apps.match.models import (
+    Match,
+    RankedRecord,
+    RiotAPIException,
+    RiotEmptyResponseException,
+)
 import matplotlib
 
 matplotlib.use("Agg")
@@ -251,26 +256,33 @@ class Summoner(models.Model):
             f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{self.puu_id}/ids?start=0&count=1&queue=420"
         )
 
-        if not matches_req.status_code == 200:
+        if matches_req.status_code != 200:
             raise RiotAPIException(
                 f"Failed to poll match list: {matches_req.json()} {self.name}"
             )
+        last_match = self.match_set.last()
+
+        try:
+            # check if any ranked stats are available for the player
+            rank = self.get_current_rank()
+        except RiotEmptyResponseException:
+            # no ranked stats available yet, in qualifiers
+            return
+
         for match_id in matches_req.json():
-            if match_id == self.match_set.last().match_id:
-                break
+            # check if we're caught up to the last stored match
+            if last_match and match_id == last_match.match_id:
+                return
+
             # new match found
             match = Match.create_match(match_id, self)
-            try:
-                rank = self.get_current_rank()
-                RankedRecord.create_record(self, match, rank)
-                if self.report_hook:
-                    self.report_new_match_found()
-            except:
-                time.sleep(5)
-                rank = self.get_current_rank()
-                RankedRecord.create_record(self, match, rank)
-                if self.report_hook:
-                    self.report_new_match_found()
+            RankedRecord.create_record(self, match, rank)
+            if self.report_hook:
+                self.report_new_match_found()
+
+            # ensure we only pull 1 match if a summoner just finished qualifiers
+            if not last_match:
+                return
 
     def update_summoner_data(self):
         sum_req = call_api(
@@ -295,38 +307,42 @@ class Summoner(models.Model):
             for rank in rank_req.json():
                 if rank.get("queueType") == "RANKED_SOLO_5x5":
                     return rank
+            raise RiotEmptyResponseException(
+                f"No Soloqueue rank found for {self.summoner_id}"
+            )
         raise RiotAPIException(
             f"Failed to find rank info: {rank_req} {self.summoner_id}"
         )
 
     @staticmethod
     def create_summoner(name, report_hook=None):
+        # get summoner info and create instance
         sum_req = call_api(
             f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}"
         )
-        if sum_req.status_code == 200:
-            reply_sum = sum_req.json()
-            new_sum = Summoner(
-                name=reply_sum.get("name"),
-                summoner_id=reply_sum.get("id"),
-                account_id=reply_sum.get("accountId"),
-                puu_id=reply_sum.get("puuid"),
-                report_hook=report_hook,
-            )
-            new_sum.save()
-
-            match_id = Match.find_last_ranked(new_sum)
-            try:
-                rank = new_sum.get_current_rank()
-                last_match = Match.create_match(match_id, new_sum)
-                RankedRecord.create_record(new_sum, last_match, rank)
-                if report_hook:
-                    new_sum.report_new_match_found()
-            except RiotAPIException:
-                pass
-            return new_sum
-        else:
+        if sum_req.status_code != 200:
             raise RiotAPIException(f"Failed to find Summoner: {sum_req.json()} {name}")
+        reply_sum = sum_req.json()
+        new_sum = Summoner(
+            name=reply_sum.get("name"),
+            summoner_id=reply_sum.get("id"),
+            account_id=reply_sum.get("accountId"),
+            puu_id=reply_sum.get("puuid"),
+            report_hook=report_hook,
+        )
+        new_sum.save()
+
+        # get match record
+        match_id = Match.find_last_ranked(new_sum)
+        try:
+            rank = new_sum.get_current_rank()
+            last_match = Match.create_match(match_id, new_sum)
+            RankedRecord.create_record(new_sum, last_match, rank)
+            if report_hook:
+                new_sum.report_new_match_found()
+        except RiotEmptyResponseException:
+            pass
+        return new_sum
 
     @staticmethod
     def on_update(sender, instance, **kwargs):
