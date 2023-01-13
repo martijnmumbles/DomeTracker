@@ -13,6 +13,12 @@ class RiotAPIException(Exception):
         super(RiotAPIException, self).__init__(message)
 
 
+class RiotEmptyResponseException(Exception):
+    def __init__(self, message="API did not return expected response body"):
+        # Call the base class constructor with the parameters it needs
+        super(RiotEmptyResponseException, self).__init__(message)
+
+
 # Create your models here.
 class Match(models.Model):
     match_id = models.CharField(max_length=15)
