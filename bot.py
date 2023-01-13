@@ -75,7 +75,11 @@ class YetAnotherBot(commands.Bot):
         def _get_ranked(name):
             try:
                 summ = Summoner.objects.get(name=name)
-                return f"{summ.name} is {summ.match_set.order_by('-start_time').first().rankedrecord}"
+                match = summ.match_set.order_by("-start_time").first()
+                if match:
+                    return f"{summ.name} is {match.rankedrecord}"
+                else:
+                    return f"{summ.name} has no ranked stats available yet"
             except Summoner.DoesNotExist:
                 return f"{name} is not being tracked."
 
@@ -106,7 +110,11 @@ class YetAnotherBot(commands.Bot):
                 if sum_req.status_code == 200:
                     try:
                         summ = Summoner.create_summoner(name)
-                        return f"Summoner added: {summ.match_set.last().rankedrecord}"
+                        match = summ.match_set.last()
+                        if match:
+                            return f"Summoner added: {match.rankedrecord}"
+                        else:
+                            return f"Summoner added."
                     except RiotAPIException:
                         return "Riot API didn't return 200 OK"
                 elif sum_req.status_code == 404:
@@ -141,11 +149,14 @@ class YetAnotherBot(commands.Bot):
             name = YetAnotherBot.check_param(*args)
             if name:
                 try:
-                    graph = await sync_to_async(_graph)(name=name)
-                    if graph:
-                        await ctx.channel.send(
-                            graph, file=discord.File(f"graph_{name}.png")
-                        )
+                    graph_res = await sync_to_async(_graph)(name=name)
+                    if graph_res:
+                        if graph_res == "No ranked record available":
+                            await ctx.channel.send(graph_res)
+                        else:
+                            await ctx.channel.send(
+                                graph_res, file=discord.File(f"graph_{name}.png")
+                            )
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
@@ -153,6 +164,8 @@ class YetAnotherBot(commands.Bot):
 
         def _matches(name):
             summ = Summoner.objects.get(name=name)
+            if not summ.match_set.last():
+                return f"No matches recorded yet for {name}"
             val = " ".join(
                 [ma.match_id for ma in summ.match_set.order_by("-start_time")]
             )
@@ -201,9 +214,9 @@ class YetAnotherBot(commands.Bot):
 
         def _last_match(name):
             summ = Summoner.objects.get(name=name)
-            print(summ.name)
+            if not summ.match_set.last():
+                return f"No matches recorded yet for {name}."
             match_id = summ.match_set.order_by("-start_time").first().match_id
-            print(match_id)
             val = _match_info(match_id)
             return val
 
@@ -245,12 +258,9 @@ class YetAnotherBot(commands.Bot):
                 await ctx.channel.send(f"Correct usage '$recent Thelmkon")
 
         def _weekly(stat):
-            print(stat)
             if stat in stats_supported:
                 rankings = []
-                print("attempting")
                 for summ in Summoner.objects.all():
-                    print(summ.name)
                     week = summ.get_weekly()
                     if week:
                         rankings.append((summ.name, week))

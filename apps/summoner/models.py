@@ -84,6 +84,8 @@ class Summoner(models.Model):
 
     def recent_stats(self):
         records = self.match_set.order_by("-start_time")[:10]
+        if not records:
+            return f"No matches recorded yet for {self.name}"
         length = len(records)
         kills = deaths = assists = kda = wins = 0
         min_kills = min_deaths = min_assists = min_kda = 10000
@@ -112,6 +114,8 @@ class Summoner(models.Model):
         )
 
     def graph(self, length=10, post=True):
+        if not self.match_set.last():
+            return f"No ranked record available."
         records = self.match_set.order_by("-start_time")[:length]
         base_val = records[0].rankedrecord.absolute_value() // 100 * 100
         plt.plot(
