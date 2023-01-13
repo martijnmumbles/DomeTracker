@@ -127,101 +127,123 @@ class Summoner(models.Model):
         plt.clf()
         return f"LP graph over last {len(records)} games"
 
-    def report_new(self):
+    def report_ongoing_promos(self, matches):
+        # new promos
+        if not matches[1].rankedrecord.promo:
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                f"Starting promos! {matches[0].rankedrecord.promo.target - matches[0].rankedrecord.promo.wins}"
+                " wins needed! May your inner-Faker channel through.",
+            )
+            return
+
+        # won promo match
+        if matches[0].win:
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                f"One step closer to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier + 1)}! Keep it "
+                f"up! {5 - matches[0].rankedrecord.promo.losses - matches[0].rankedrecord.promo.wins}"
+                f" matches left to play.",
+            )
+            return
+
+        # lost promo match
+        if (
+            matches[0].rankedrecord.promo.target - matches[0].rankedrecord.promo.wins
+            == 1
+        ):
+            clutch = "Clutch out that last win!"
+        else:
+            clutch = (
+                f"Clutch out those "
+                f"{matches[0].rankedrecord.promo.target - matches[0].rankedrecord.promo.wins} wins!"
+            )
+        DiscordWebhook.post_to_discord(
+            self.report_hook,
+            f"Time to rally. Step up to the fight, bring them down! {clutch} "
+            f"{5 - matches[0].rankedrecord.promo.losses - matches[0].rankedrecord.promo.wins} matches left "
+            f"to play.",
+        )
+
+    def report_promos_result(self, matches):
+        if not matches[0].win:
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                'Promos ended.. "Mission Failed. We\'ll Get Em Next Time."',
+            )
+        else:
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                f"Promos ended, congratulations! Sally forth brave Summoner, may "
+                f"{RankedRecord.int_to_tier(matches[0].rankedrecord.tier)} be kind.",
+            )
+
+    def report_regular_match(self, matches):
+        trend = ""
+        if len(matches) > 4:
+            trend = RankedRecord.trend(matches[0].rankedrecord, matches[4].rankedrecord)
+        match_result = "Gained" if matches[0].win else "Lost"
+        DiscordWebhook.post_to_discord(
+            self.report_hook,
+            f"{match_result} "
+            f"{abs(matches[0].rankedrecord.absolute_value() - matches[1].rankedrecord.absolute_value())} LP."
+            f" {trend}",
+        )
+        # gained a rank/tier
+        if (
+            matches[0].rankedrecord.rank > matches[1].rankedrecord.rank
+            and not matches[0].rankedrecord.tier < matches[1].rankedrecord.tier
+        ) or matches[0].rankedrecord.tier > matches[1].rankedrecord.tier:
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                f"Rising up to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
+                f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}!",
+            )
+        # lost a rank/tier
+        elif (
+            matches[0].rankedrecord.rank < matches[1].rankedrecord.rank
+            or matches[0].rankedrecord.tier < matches[1].rankedrecord.tier
+        ):
+            DiscordWebhook.post_to_discord(
+                self.report_hook,
+                f"Dropped down to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
+                f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}.. Time to rally. Step up to the "
+                f"fight, bring them down!",
+            )
+
+    def report_new_match_found(self):
+        # no report link set
         if not self.report_hook:
             return
+
+        # first detected match
         if self.match_set.count() == 1:
             record = self.match_set.first().rankedrecord
             DiscordWebhook.post_to_discord(
                 self.report_hook, f"{self.name} added. Currently {record}."
             )
+            return
+
+        # report last match result
+        matches = self.match_set.order_by("-start_time")[:10]
+        match_result = "won" if matches[0].win else "lost"
+        DiscordWebhook.post_to_discord(
+            self.report_hook,
+            f"{self.name} just {match_result} as {matches[0].champion_name}!",
+        )
+
+        # report active promos
+        if matches[0].rankedrecord.promo:
+            self.report_ongoing_promos(matches)
+        # report promos that have ended
+        elif matches[1].rankedrecord.promo:
+            self.report_promos_result(matches)
+        # report regular match
         else:
-            matches = self.match_set.order_by("-start_time")[:10]
-            match_result = "won" if matches[0].win else "lost"
-            DiscordWebhook.post_to_discord(
-                self.report_hook,
-                f"{self.name} just {match_result} as {matches[0].champion_name}!",
-            )
-            if matches[0].rankedrecord.promo:
-                if not matches[1].rankedrecord.promo:
-                    DiscordWebhook.post_to_discord(
-                        self.report_hook,
-                        f"Starting promos! {matches[0].rankedrecord.promo.target-matches[0].rankedrecord.promo.wins}"
-                        " wins needed! May your inner-Faker channel through.",
-                    )
-                else:
-                    if matches[0].win:
-                        DiscordWebhook.post_to_discord(
-                            self.report_hook,
-                            f"One step closer to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier+1)}! Keep it "
-                            f"up! {5 - matches[0].rankedrecord.promo.losses - matches[0].rankedrecord.promo.wins}"
-                            f" matches left to play.",
-                        )
-                    else:
-                        if (
-                            matches[0].rankedrecord.promo.target
-                            - matches[0].rankedrecord.promo.wins
-                            == 1
-                        ):
-                            clutch = "Clutch out that last win!"
-                        else:
-                            clutch = (
-                                f"Clutch out those "
-                                f"{matches[0].rankedrecord.promo.target-matches[0].rankedrecord.promo.wins} wins!"
-                            )
-                        DiscordWebhook.post_to_discord(
-                            self.report_hook,
-                            f"Time to rally. Step up to the fight, bring them down! {clutch} "
-                            f"{5-matches[0].rankedrecord.promo.losses-matches[0].rankedrecord.promo.wins} matches left "
-                            f"to play.",
-                        )
-            elif matches[1].rankedrecord.promo:
-                if not matches[0].win:
-                    DiscordWebhook.post_to_discord(
-                        self.report_hook,
-                        'Promos ended.. "Mission Failed. We\'ll Get Em Next Time."',
-                    )
-                else:
-                    DiscordWebhook.post_to_discord(
-                        self.report_hook,
-                        f"Promos ended, congratulations! Sally forth brave Summoner, may "
-                        f"{RankedRecord.int_to_tier(matches[0].rankedrecord.tier)} be kind.",
-                    )
-            else:
-                trend = ""
-                if len(matches) > 4:
-                    trend = RankedRecord.trend(
-                        matches[0].rankedrecord, matches[4].rankedrecord
-                    )
-                match_result = "Gained" if matches[0].win else "Lost"
-                DiscordWebhook.post_to_discord(
-                    self.report_hook,
-                    f"{match_result} "
-                    f"{abs(matches[0].rankedrecord.absolute_value()-matches[1].rankedrecord.absolute_value())} LP."
-                    f" {trend}",
-                )
-                if (
-                    matches[0].rankedrecord.rank > matches[1].rankedrecord.rank
-                    and not matches[0].rankedrecord.tier < matches[1].rankedrecord.tier
-                ) or matches[0].rankedrecord.tier > matches[1].rankedrecord.tier:
-                    DiscordWebhook.post_to_discord(
-                        self.report_hook,
-                        f"Rising up to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
-                        f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}!",
-                    )
-                elif (
-                    matches[0].rankedrecord.rank < matches[1].rankedrecord.rank
-                    or matches[0].rankedrecord.tier < matches[1].rankedrecord.tier
-                ):
-                    DiscordWebhook.post_to_discord(
-                        self.report_hook,
-                        f"Dropped down to {RankedRecord.int_to_tier(matches[0].rankedrecord.tier)}"
-                        f" {RankedRecord.int_to_rank(matches[0].rankedrecord.rank)}.. Time to rally. Step up to the "
-                        f"fight, bring them down!",
-                    )
-            self.graph(10)
-            for event in matches[0].events():
-                DiscordWebhook.post_to_discord(self.report_hook, event)
+            self.report_regular_match(matches)
+        self.graph(10)
+        for event in matches[0].events():
+            DiscordWebhook.post_to_discord(self.report_hook, event)
 
     def poll(self):
         self.update_summoner_data()
@@ -229,28 +251,26 @@ class Summoner(models.Model):
             f"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{self.puu_id}/ids?start=0&count=1&queue=420"
         )
 
-        if matches_req.status_code == 200:
-            for match_id in matches_req.json():
-                if match_id == self.match_set.last().match_id:
-                    break
-                else:
-                    # new match found
-                    match = Match.create_match(match_id, self)
-                    try:
-                        rank = self.get_current_rank()
-                        RankedRecord.create_record(self, match, rank)
-                        if self.report_hook:
-                            self.report_new()
-                    except:
-                        time.sleep(5)
-                        rank = self.get_current_rank()
-                        RankedRecord.create_record(self, match, rank)
-                        if self.report_hook:
-                            self.report_new()
-        else:
+        if not matches_req.status_code == 200:
             raise RiotAPIException(
                 f"Failed to poll match list: {matches_req.json()} {self.name}"
             )
+        for match_id in matches_req.json():
+            if match_id == self.match_set.last().match_id:
+                break
+            # new match found
+            match = Match.create_match(match_id, self)
+            try:
+                rank = self.get_current_rank()
+                RankedRecord.create_record(self, match, rank)
+                if self.report_hook:
+                    self.report_new_match_found()
+            except:
+                time.sleep(5)
+                rank = self.get_current_rank()
+                RankedRecord.create_record(self, match, rank)
+                if self.report_hook:
+                    self.report_new_match_found()
 
     def update_summoner_data(self):
         sum_req = call_api(
@@ -301,7 +321,7 @@ class Summoner(models.Model):
             rank = new_sum.get_current_rank()
             RankedRecord.create_record(new_sum, last_match, rank)
             if report_hook:
-                new_sum.report_new()
+                new_sum.report_new_match_found()
             return new_sum
         else:
             raise RiotAPIException(f"Failed to find Summoner: {sum_req.json()} {name}")
