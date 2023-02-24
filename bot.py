@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 import logging
 import requests
+import textwrap
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "DomeTracker.settings")
@@ -182,7 +183,9 @@ class YetAnotherBot(commands.Bot):
                 try:
                     match_list = await sync_to_async(_matches)(name=name)
                     if match_list:
-                        await ctx.channel.send(match_list)
+                        lines = textwrap.wrap(match_list, 2000)
+                        for line in lines:
+                            await ctx.channel.send(line)
                 except Summoner.DoesNotExist:
                     await ctx.channel.send(f"Can't find summoner by that name")
             else:
@@ -289,7 +292,6 @@ class YetAnotherBot(commands.Bot):
                 await ctx.channel.send(f"Supported stats: {' '.join(stats_supported)}.")
                 return
             results = await sync_to_async(_weekly)(stat=stat)
-            print(results)
             if results:
                 await ctx.channel.send(results)
             else:
