@@ -228,7 +228,6 @@ class Promos(models.Model):
     target = models.IntegerField()
     wins = models.IntegerField()
     losses = models.IntegerField()
-    neither = models.IntegerField()
     progress = models.CharField(max_length=5)
 
     def __eq__(self, other):
