@@ -301,6 +301,6 @@ class YetAnotherBot(commands.Bot):
 
 
 if __name__ == "__main__":
-    intents = discord.Intents.default()
+    intents = discord.Intents.all()
     client = YetAnotherBot(prefix="$", bot=False, intentions=intents)
     client.run(settings.DISCORD_TOKEN)
