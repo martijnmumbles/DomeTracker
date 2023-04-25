@@ -19,8 +19,10 @@ from asgiref.sync import sync_to_async
 
 
 class YetAnotherBot(commands.Bot):
-    def __init__(self, prefix, bot):
-        commands.Bot.__init__(self, command_prefix=prefix, self_bot=bot)
+    def __init__(self, prefix, bot, intentions):
+        commands.Bot.__init__(
+            self, command_prefix=prefix, self_bot=bot, intents=intentions
+        )
         logger = logging.getLogger("discord")
         logger.setLevel(logging.WARNING)
         handler = logging.FileHandler(
@@ -299,5 +301,6 @@ class YetAnotherBot(commands.Bot):
 
 
 if __name__ == "__main__":
-    client = YetAnotherBot(prefix="$", bot=False)
+    intents = discord.Intents.default()
+    client = YetAnotherBot(prefix="$", bot=False, intentions=intents)
     client.run(settings.DISCORD_TOKEN)
