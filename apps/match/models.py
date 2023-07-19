@@ -363,14 +363,16 @@ class RankedRecord(models.Model):
             return 3
         if tier.upper() == "PLATINUM":
             return 4
-        if tier.upper() == "DIAMOND":
+        if tier.upper() == "EMERALD":
             return 5
-        if tier.upper() == "MASTER":
+        if tier.upper() == "DIAMOND":
             return 6
-        if tier.upper() == "GRANDMASTER":
+        if tier.upper() == "MASTER":
             return 7
-        if tier.upper() == "CHALLENGER":
+        if tier.upper() == "GRANDMASTER":
             return 8
+        if tier.upper() == "CHALLENGER":
+            return 9
 
     @staticmethod
     def int_to_tier(tier):
@@ -385,12 +387,14 @@ class RankedRecord(models.Model):
         if tier == 4:
             return "PLATINUM"
         if tier == 5:
-            return "DIAMOND"
+            return "EMERALD"
         if tier == 6:
-            return "MASTER"
+            return "DIAMOND"
         if tier == 7:
-            return "GRANDMASTER"
+            return "MASTER"
         if tier == 8:
+            return "GRANDMASTER"
+        if tier == 9:
             return "CHALLENGER"
 
     @staticmethod
