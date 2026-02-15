@@ -19,11 +19,9 @@ class TestCheckParam(unittest.TestCase):
         result = YetAnotherBot.check_param("hello", "world")
         self.assertEqual(result, "hello world")
 
-    def test_no_args_with_max_length(self):
-        # Due to operator precedence: (0 >= 1 and not 1) or (0 <= 1) => True
-        # So it returns "" (joined empty args), not None
+    def test_no_args_returns_none(self):
         result = YetAnotherBot.check_param(min_length=1, max_length=1)
-        self.assertEqual(result, "")
+        self.assertIsNone(result)
 
     def test_too_many_args(self):
         result = YetAnotherBot.check_param("a", "b", "c", min_length=1, max_length=2)

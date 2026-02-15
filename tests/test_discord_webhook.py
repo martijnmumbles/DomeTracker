@@ -56,14 +56,12 @@ class TestPostImageToDiscord(unittest.TestCase):
         mock_resp.status_code = 500
         mock_post.return_value = mock_resp
 
-        # Source code has a bug: calls post_to_discord() with only message (no webhook),
-        # so this raises TypeError. The test verifies the initial post was attempted.
-        with self.assertRaises(TypeError):
-            DiscordWebhook.post_image_to_discord(
-                "https://hook.example.com", "Check this!", "/tmp/graph.png"
-            )
+        DiscordWebhook.post_image_to_discord(
+            "https://hook.example.com", "Check this!", "/tmp/graph.png"
+        )
 
-        mock_post.assert_called_once()
+        # Should have made a second call to report the error
+        self.assertEqual(mock_post.call_count, 2)
 
     @patch("discord_webhook.requests.post")
     def test_no_image_path(self, mock_post):

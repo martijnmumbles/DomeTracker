@@ -35,5 +35,6 @@ class DiscordWebhook:
             r = requests.post(f"{webhook}?wait=true", files=file_body)
             if r.status_code != 200:
                 DiscordWebhook.post_to_discord(
-                    f"Response code {r.status_code} received when posting file."
+                    webhook,
+                    f"Response code {r.status_code} received when posting file.",
                 )

@@ -40,7 +40,7 @@ class YetAnotherBot(commands.Bot):
 
     @staticmethod
     def check_param(*args, min_length=1, max_length=None):
-        if len(args) >= min_length and not max_length or len(args) <= max_length:
+        if len(args) >= min_length and (not max_length or len(args) <= max_length):
             return " ".join(str(e) for e in args)
         else:
             return None
