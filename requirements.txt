@@ -1,4 +1,4 @@
-aiohttp==3.11.18
+aiohttp==3.13.3
 aiosignal==1.4.0
 asgiref==3.8.1
 async-timeout==5.0.1
@@ -26,7 +26,7 @@ mypy-extensions==1.1.0
 numpy==1.26.4
 packaging==24.2
 pathspec==0.12.1
-pillow==10.4.0
+pillow==12.1.1
 platformdirs==4.4.0
 psycopg2==2.9.11
 pyparsing==3.3.2
